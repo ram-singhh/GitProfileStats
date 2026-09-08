@@ -114,6 +114,90 @@ describe('Card Generators', () => {
       expect(svg).toContain('42'); // Stars
       expect(svg).toContain('1,337'); // Commits formatting
     });
+
+    it('should render separate SVG text elements for labels and values with right-aligned values', () => {
+      const mockStats = {
+        username: 'johndoe',
+        name: 'John Doe',
+        totalStars: 16,
+        pullRequests: 8,
+        totalCommits: 632,
+        issues: 1,
+        totalRepositories: 35,
+        followers: 3,
+      };
+
+      const svg = renderStatsCard(mockStats, dummyOptions);
+
+      // Separate text elements for labels
+      expect(svg).toContain('>Total Stars:<');
+      expect(svg).toContain('>Total Commits:<');
+      expect(svg).toContain('>Total Repositories:<');
+      expect(svg).toContain('>Pull Requests:<');
+      expect(svg).toContain('>Issues:<');
+      expect(svg).toContain('>Followers:<');
+
+      // Separate text elements for values
+      expect(svg).toContain('>16<');
+      expect(svg).toContain('>632<');
+      expect(svg).toContain('>35<');
+      expect(svg).toContain('>8<');
+      expect(svg).toContain('>1<');
+      expect(svg).toContain('>3<');
+
+      // Right-aligned values within each column
+      expect(svg).toContain('text-anchor="end"');
+      // Left column values aligned at x="210"
+      expect(svg).toMatch(/<text[^>]*x="210"[^>]*text-anchor="end"[^>]*>16<\/text>/);
+      expect(svg).toMatch(/<text[^>]*x="210"[^>]*text-anchor="end"[^>]*>632<\/text>/);
+      expect(svg).toMatch(/<text[^>]*x="210"[^>]*text-anchor="end"[^>]*>35<\/text>/);
+      // Right column values aligned at x="420"
+      expect(svg).toMatch(/<text[^>]*x="420"[^>]*text-anchor="end"[^>]*>8<\/text>/);
+      expect(svg).toMatch(/<text[^>]*x="420"[^>]*text-anchor="end"[^>]*>1<\/text>/);
+      expect(svg).toMatch(/<text[^>]*x="420"[^>]*text-anchor="end"[^>]*>3<\/text>/);
+    });
+
+    it('should handle single-digit, multi-digit, and 10,000+ numbers gracefully', () => {
+      const largeStats = {
+        username: 'rockstar',
+        name: 'Rockstar Dev',
+        totalStars: 25400,
+        pullRequests: 10500,
+        totalCommits: 150200,
+        issues: 8400,
+        totalRepositories: 2500,
+        followers: 120000,
+      };
+
+      const svg = renderStatsCard(largeStats, dummyOptions);
+
+      expect(svg).toContain('>25,400<');
+      expect(svg).toContain('>10,500<');
+      expect(svg).toContain('>150,200<');
+      expect(svg).toContain('>8,400<');
+      expect(svg).toContain('>2,500<');
+      expect(svg).toContain('>120,000<');
+      expect(svg).toContain('</svg>');
+    });
+
+    it('should handle zero and single-digit values correctly', () => {
+      const zeroStats = {
+        username: 'newbie',
+        name: null,
+        totalStars: 0,
+        pullRequests: 0,
+        totalCommits: 0,
+        issues: 0,
+        totalRepositories: 0,
+        followers: 0,
+      };
+
+      const svg = renderStatsCard(zeroStats, dummyOptions);
+
+      expect(svg).toContain('newbie&apos;s GitHub Stats');
+      expect(svg).toContain('>0<');
+      expect(svg).toContain('</svg>');
+    });
   });
 
   describe('renderLanguagesCard', () => {
@@ -184,17 +268,57 @@ describe('Card Generators', () => {
 
   describe('renderTrophiesCard', () => {
     it('should calculate trophy tiers correctly', () => {
-      expect(calculateTrophy('stars', 5)).toEqual({ tier: 'NONE', tierName: 'Beginner', color: '#8b949e' });
-      expect(calculateTrophy('stars', 10)).toEqual({ tier: 'BRONZE', tierName: 'Bronze', color: '#c5a059' });
-      expect(calculateTrophy('stars', 50)).toEqual({ tier: 'SILVER', tierName: 'Silver', color: '#a6a6a6' });
-      expect(calculateTrophy('stars', 200)).toEqual({ tier: 'GOLD', tierName: 'Gold', color: '#ffd700' });
-      expect(calculateTrophy('stars', 1000)).toEqual({ tier: 'PLATINUM', tierName: 'Platinum', color: '#00e5ff' });
+      expect(calculateTrophy('stars', 5)).toEqual({
+        tier: 'NONE',
+        tierName: 'Beginner',
+        color: '#8b949e',
+      });
+      expect(calculateTrophy('stars', 10)).toEqual({
+        tier: 'BRONZE',
+        tierName: 'Bronze',
+        color: '#c5a059',
+      });
+      expect(calculateTrophy('stars', 50)).toEqual({
+        tier: 'SILVER',
+        tierName: 'Silver',
+        color: '#a6a6a6',
+      });
+      expect(calculateTrophy('stars', 200)).toEqual({
+        tier: 'GOLD',
+        tierName: 'Gold',
+        color: '#ffd700',
+      });
+      expect(calculateTrophy('stars', 1000)).toEqual({
+        tier: 'PLATINUM',
+        tierName: 'Platinum',
+        color: '#00e5ff',
+      });
 
-      expect(calculateTrophy('commits', 50)).toEqual({ tier: 'NONE', tierName: 'Beginner', color: '#8b949e' });
-      expect(calculateTrophy('commits', 100)).toEqual({ tier: 'BRONZE', tierName: 'Bronze', color: '#c5a059' });
-      expect(calculateTrophy('commits', 500)).toEqual({ tier: 'SILVER', tierName: 'Silver', color: '#a6a6a6' });
-      expect(calculateTrophy('commits', 2000)).toEqual({ tier: 'GOLD', tierName: 'Gold', color: '#ffd700' });
-      expect(calculateTrophy('commits', 10000)).toEqual({ tier: 'PLATINUM', tierName: 'Platinum', color: '#00e5ff' });
+      expect(calculateTrophy('commits', 50)).toEqual({
+        tier: 'NONE',
+        tierName: 'Beginner',
+        color: '#8b949e',
+      });
+      expect(calculateTrophy('commits', 100)).toEqual({
+        tier: 'BRONZE',
+        tierName: 'Bronze',
+        color: '#c5a059',
+      });
+      expect(calculateTrophy('commits', 500)).toEqual({
+        tier: 'SILVER',
+        tierName: 'Silver',
+        color: '#a6a6a6',
+      });
+      expect(calculateTrophy('commits', 2000)).toEqual({
+        tier: 'GOLD',
+        tierName: 'Gold',
+        color: '#ffd700',
+      });
+      expect(calculateTrophy('commits', 10000)).toEqual({
+        tier: 'PLATINUM',
+        tierName: 'Platinum',
+        color: '#00e5ff',
+      });
     });
 
     it('should generate a valid trophies card SVG with dynamic height and tier-based styles', () => {
@@ -226,14 +350,24 @@ describe('Card Generators', () => {
       // Check for tier color coding classes
       expect(svg).toContain('trophy-block-silver'); // Stars (42 -> Silver)
       expect(svg).toContain('trophy-block-bronze'); // Commits (1337 -> Bronze)
-      expect(svg).toContain('trophy-block-none');   // Issues (2 -> None/Beginner)
+      expect(svg).toContain('trophy-block-none'); // Issues (2 -> None/Beginner)
     });
   });
 
   describe('renderTopContributedCard', () => {
     const mockContributions = [
-      { name: 'repo-A', owner: 'owner-A', primaryLanguage: { name: 'TypeScript', color: '#3178c6' }, contributionCount: 15 },
-      { name: 'repo-B', owner: 'owner-B', primaryLanguage: { name: 'JavaScript', color: '#f1e05a' }, contributionCount: 42 },
+      {
+        name: 'repo-A',
+        owner: 'owner-A',
+        primaryLanguage: { name: 'TypeScript', color: '#3178c6' },
+        contributionCount: 15,
+      },
+      {
+        name: 'repo-B',
+        owner: 'owner-B',
+        primaryLanguage: { name: 'JavaScript', color: '#f1e05a' },
+        contributionCount: 42,
+      },
       { name: 'repo-C', owner: 'owner-C', primaryLanguage: null, contributionCount: 5 },
     ];
 
@@ -316,7 +450,7 @@ describe('Card Generators', () => {
       expect(svg).toContain('width="490"');
       expect(svg).toContain('height="240"');
       expect(svg).toContain('</svg>');
-      expect(svg).toContain("John Doe&apos;s Repository Rankings");
+      expect(svg).toContain('John Doe&apos;s Repository Rankings');
       expect(svg).toContain('starred-repo');
       expect(svg).toContain('forked-repo');
       expect(svg).toContain('updated-repo');
@@ -326,15 +460,18 @@ describe('Card Generators', () => {
     });
 
     it('should handle null/empty rankings gracefully', () => {
-      const svg = renderRankingsCard({
-        username: 'john_doe',
-        name: null,
-        mostStarred: null,
-        mostForked: null,
-        mostRecentlyUpdated: null,
-      }, dummyOptions);
+      const svg = renderRankingsCard(
+        {
+          username: 'john_doe',
+          name: null,
+          mostStarred: null,
+          mostForked: null,
+          mostRecentlyUpdated: null,
+        },
+        dummyOptions,
+      );
 
-      expect(svg).toContain("john_doe&apos;s Repository Rankings");
+      expect(svg).toContain('john_doe&apos;s Repository Rankings');
       expect(svg).toContain('No repository found');
       expect(svg).toContain('No repository meets this highlight criteria.');
     });

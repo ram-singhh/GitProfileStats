@@ -57,45 +57,54 @@ function createStatRow(iconName: IconName, label: string, value: number | string
   const valueStr = typeof value === 'number' ? value.toLocaleString() : value;
   return {
     type: 'row',
-    spacing: 8,
+    width: 'fill',
     alignItems: 'center',
+    justifyContent: 'space-between',
     style: {
       className: 'stat-row',
     },
     children: [
       {
-        type: 'leaf',
-        width: 16,
-        height: 16,
-        render: (x: number, y: number, w: number, _h: number) =>
-          icon({
-            name: iconName,
-            x,
-            y,
-            size: w,
-            fill: 'var(--color-accent)',
-          }),
-      },
-      {
-        type: 'leaf',
-        width: 'auto',
-        height: 'auto',
-        measure: () => ({
-          width: estimateTextWidth(label, 13),
-          height: 14,
-        }),
-        render: (x: number, y: number, _w: number, _h: number) =>
-          renderTypography(
-            {
-              x,
-              y,
-              text: label,
-              dominantBaseline: 'hanging',
-            },
-            13,
-            500,
-            'var(--color-text-muted)',
-          ),
+        type: 'row',
+        spacing: 8,
+        alignItems: 'center',
+        children: [
+          {
+            type: 'leaf',
+            width: 16,
+            height: 16,
+            render: (x: number, y: number, w: number, _h: number) =>
+              icon({
+                name: iconName,
+                x,
+                y,
+                size: w,
+                fill: 'var(--color-accent)',
+              }),
+          },
+          {
+            type: 'leaf',
+            width: 'auto',
+            height: 'auto',
+            measure: () => ({
+              width: estimateTextWidth(label, 13),
+              height: 14,
+            }),
+            render: (x: number, y: number, _w: number, _h: number) =>
+              renderTypography(
+                {
+                  x,
+                  y,
+                  text: label,
+                  dominantBaseline: 'hanging',
+                  maxWidth: 125,
+                },
+                13,
+                500,
+                'var(--color-text-muted)',
+              ),
+          },
+        ],
       },
       {
         type: 'leaf',
@@ -105,12 +114,13 @@ function createStatRow(iconName: IconName, label: string, value: number | string
           width: estimateTextWidth(valueStr, 13),
           height: 14,
         }),
-        render: (x: number, y: number, _w: number, _h: number) =>
+        render: (x: number, y: number, w: number, _h: number) =>
           renderTypography(
             {
-              x,
+              x: x + w,
               y,
               text: valueStr,
+              textAnchor: 'end',
               dominantBaseline: 'hanging',
             },
             13,
