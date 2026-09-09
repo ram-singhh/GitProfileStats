@@ -4,10 +4,6 @@ A lightweight, open‑source service that provides real‑time GitHub statistics
 
 ---
 
-![Banner](https://raw.githubusercontent.com/Ramsingh4656/GitProfileStats/main/.github/banner.png)
-
----
-
 ## Project Badges
 
 [![License](https://img.shields.io/github/license/Ramsingh4656/GitProfileStats)](https://github.com/Ramsingh4656/GitProfileStats/blob/main/LICENSE)
