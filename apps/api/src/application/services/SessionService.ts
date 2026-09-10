@@ -55,7 +55,7 @@ export class SessionService {
         typeof claims.iat !== 'number' ||
         typeof claims.exp !== 'number' ||
         claims.exp <= now ||
-        claims.iat > now
+        claims.iat > now + 60
       ) {
         return null;
       }

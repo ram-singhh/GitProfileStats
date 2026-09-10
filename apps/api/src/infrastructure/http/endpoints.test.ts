@@ -515,5 +515,45 @@ describe('API Endpoints', () => {
       expect(hasUserReposCall).toBe(false);
       expect(hasViewerReposGraphQLCall).toBe(false);
     });
+
+    it('should complete OAuth, store token, and execute GraphQL queries with the OAuth token without manual PAT', async () => {
+      // 1. User performs OAuth callback
+      const callbackResponse = await request(app)
+        .get('/api/v1/auth/github/callback')
+        .query({ code: 'valid-oauth-code' });
+
+      expect(callbackResponse.status).toBe(302);
+      const sessionCookie = callbackResponse.headers['set-cookie']
+        ?.find((cookie) => cookie.startsWith('gitprofilestats_session='))
+        ?.split(';')[0];
+      expect(sessionCookie).toBeDefined();
+
+      // 2. Dashboard requests user profile
+      const profileResponse = await request(app)
+        .get('/api/v1/users/me')
+        .set('Cookie', sessionCookie as string);
+
+      expect(profileResponse.status).toBe(200);
+      expect(profileResponse.body.data.username).toBe('demo');
+      expect(profileResponse.body.data.hasGithubToken).toBe(true);
+
+      // 3. Dashboard requests statistics using the session cookie
+      mockFetch.mockClear();
+      const statsResponse = await request(app)
+        .get('/api/statistics?username=demo')
+        .set('Cookie', sessionCookie as string);
+
+      expect(statsResponse.status).toBe(200);
+      expect(statsResponse.body.success).toBe(true);
+      expect(statsResponse.body.data).toHaveProperty('commitStats');
+      expect(statsResponse.body.data).toHaveProperty('contributionStats');
+
+      // Verify GraphQL API requests carried the user's OAuth access token in the Authorization header
+      const graphqlCalls = mockFetch.mock.calls.filter(([url]) => String(url).includes('/graphql'));
+      expect(graphqlCalls.length).toBeGreaterThan(0);
+      for (const [, opts] of graphqlCalls) {
+        expect(opts?.headers?.Authorization).toBe('Bearer mock-access-token');
+      }
+    });
   });
 });

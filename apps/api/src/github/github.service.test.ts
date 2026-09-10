@@ -252,10 +252,32 @@ describe('GitHubService', () => {
         'https://api.github.com/graphql',
         expect.objectContaining({
           method: 'POST',
+          headers: expect.objectContaining({
+            Authorization: 'Bearer token',
+          }),
           body: JSON.stringify({ query, variables }),
         }),
       );
       expect(result).toEqual(mockData);
+    });
+
+    it('should not double-prefix Bearer when token already contains Bearer prefix in GraphQL', async () => {
+      const mockData = { viewer: { login: 'octocat' } };
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ data: mockData }),
+      });
+
+      await gitHubService.graphql('query { viewer { login } }', {}, 'Bearer prefixed-token');
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.github.com/graphql',
+        expect.objectContaining({
+          headers: expect.objectContaining({
+            Authorization: 'Bearer prefixed-token',
+          }),
+        }),
+      );
     });
 
     it('should throw GitHubApiError if response is not ok', async () => {

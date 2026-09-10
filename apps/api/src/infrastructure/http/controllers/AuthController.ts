@@ -78,7 +78,9 @@ export class AuthController {
       const githubUser = await this.gitHubService.getAuthenticatedUser(accessToken);
 
       // Find or create user
-      let user = await this.userRepository.findByUsername(githubUser.login);
+      let user =
+        (await this.userRepository.findById(githubUser.id.toString())) ??
+        (await this.userRepository.findByUsername(githubUser.login));
       if (!user) {
         user = User.create({
           id: githubUser.id.toString(),
@@ -100,10 +102,11 @@ export class AuthController {
       }
 
       const session = this.sessionService.createSession(user.id);
+      const isSecure = env.NODE_ENV === 'production' || env.NODE_ENV === 'test';
       res.cookie(SESSION_COOKIE_NAME, session, {
         httpOnly: true,
-        secure: true,
-        sameSite: 'none',
+        secure: isSecure,
+        sameSite: isSecure ? 'none' : 'lax',
         maxAge: SESSION_MAX_AGE_SECONDS * 1000,
         path: '/',
       });

@@ -144,7 +144,9 @@ export class GitHubService {
       };
 
       if (activeToken) {
-        headers['Authorization'] = `Bearer ${activeToken}`;
+        headers['Authorization'] = activeToken.startsWith('Bearer ')
+          ? activeToken
+          : `Bearer ${activeToken}`;
       }
 
       try {
@@ -320,7 +322,9 @@ export class GitHubService {
       };
 
       if (activeToken) {
-        headers['Authorization'] = `Bearer ${activeToken}`;
+        headers['Authorization'] = activeToken.startsWith('Bearer ')
+          ? activeToken
+          : `Bearer ${activeToken}`;
       }
 
       try {
