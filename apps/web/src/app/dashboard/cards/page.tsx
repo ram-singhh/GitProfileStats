@@ -253,18 +253,16 @@ export default function CardPreviewPage() {
     fetchProfile();
   }, [router]);
 
-  // Main effect to fetch SVGs when parameters change
-  useEffect(() => {
-    const apiBase = env.NEXT_PUBLIC_API_URL;
-    const types: CardType[] = ['profile', 'stats', 'languages', 'streak', 'repository', 'trophies', 'top-contributed', 'rankings'];
-
-    types.forEach(async (type) => {
+  // Fetch SVG for a single card type
+  const fetchCard = React.useCallback(
+    async (type: CardType) => {
       setCards((prev) => ({
         ...prev,
         [type]: { ...prev[type], loading: true, error: null },
       }));
 
       try {
+        const apiBase = env.NEXT_PUBLIC_API_URL;
         // Construct query parameters
         const params = new URLSearchParams();
         if (type === 'repository') {
@@ -328,19 +326,38 @@ export default function CardPreviewPage() {
           },
         }));
       }
+    },
+    [
+      username,
+      repoName,
+      selectedTheme,
+      langsCount,
+      contribLimit,
+      customAccent,
+      customBackground,
+      borderRadius,
+      hideBorder,
+      fontStyle,
+    ]
+  );
+
+  // Main effect to fetch SVGs when parameters change
+  useEffect(() => {
+    const types: CardType[] = [
+      'profile',
+      'stats',
+      'languages',
+      'streak',
+      'repository',
+      'trophies',
+      'top-contributed',
+      'rankings',
+    ];
+
+    types.forEach((type) => {
+      fetchCard(type);
     });
-  }, [
-    username,
-    repoName,
-    selectedTheme,
-    langsCount,
-    contribLimit,
-    customAccent,
-    customBackground,
-    borderRadius,
-    hideBorder,
-    fontStyle,
-  ]);
+  }, [fetchCard]);
 
   // Apply global zoom value when updated
   const handleGlobalZoomChange = (val: number) => {
@@ -948,12 +965,11 @@ export default function CardPreviewPage() {
                       : 'bg-zinc-800 border border-white/5 text-zinc-400'
                   }`}
                 >
-                  {isPatVerified ? 'Active' : 'None'}
+                  {isPatVerified ? 'Active' : 'Optional (OAuth Active)'}
                 </span>
               </div>
               <p className="text-[9px] text-zinc-500 leading-relaxed">
-                If configured in settings, your local GitHub PAT is attached securely to fetch
-                private repository metrics.
+                Standard public metrics are active. A Personal Access Token is optional for private repo metrics or higher rate limits.
               </p>
             </div>
           </div>
@@ -1173,13 +1189,7 @@ export default function CardPreviewPage() {
                               </p>
                             </div>
                             <button
-                              onClick={() => {
-                                // Trigger state re-fetch by updating state loader
-                                setCards((prev) => ({
-                                  ...prev,
-                                  [type]: { ...prev[type], loading: true, error: null },
-                                }));
-                              }}
+                              onClick={() => fetchCard(type)}
                               className="px-4 py-2 border border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-xl text-xs font-bold transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
                             >
                               Retry Loading

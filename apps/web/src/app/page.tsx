@@ -1185,12 +1185,17 @@ export default function Home() {
             <a href="#how-it-works" className="hover:text-white transition-colors duration-200">
               How It Works
             </a>
-            <Link href="/privacy" className="hover:text-white transition-colors duration-200">
-              Privacy
+            <Link href="/dashboard" className="hover:text-white transition-colors duration-200">
+              Dashboard
             </Link>
-            <Link href="/terms" className="hover:text-white transition-colors duration-200">
-              Terms
-            </Link>
+            <a
+              href="https://github.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white transition-colors duration-200"
+            >
+              GitHub
+            </a>
           </div>
 
           {/* Operational Status & Copyright */}

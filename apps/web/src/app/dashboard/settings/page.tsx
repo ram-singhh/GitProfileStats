@@ -12,6 +12,8 @@ import {
   RefreshCw,
   Check,
   AlertTriangle,
+  KeyRound,
+  Lock,
 } from 'lucide-react';
 
 // Predefined Themes with color preview swatches
@@ -123,6 +125,10 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [hasGithubToken, setHasGithubToken] = useState(false);
+  const [patToken, setPatToken] = useState('');
+  const [savingPat, setSavingPat] = useState(false);
+  const [patSuccessMsg, setPatSuccessMsg] = useState<string | null>(null);
 
   // Settings State
   const [settings, setSettings] = useState<SettingsState>({
@@ -155,7 +161,7 @@ export default function SettingsPage() {
 
         const data = await response.json();
         if (data.success && data.data) {
-          // If settings are present in profile data, prefill
+          setHasGithubToken(Boolean(data.data.hasGithubToken));
           if (data.data.settings) {
             setSettings(data.data.settings);
           }
@@ -170,6 +176,68 @@ export default function SettingsPage() {
 
     fetchSettings();
   }, [router]);
+
+  // Handle GitHub PAT Token Save
+  const handleSavePat = async () => {
+    if (!patToken.trim()) return;
+
+    setSavingPat(true);
+    setErrorMsg(null);
+    setPatSuccessMsg(null);
+
+    try {
+      const apiBase = env.NEXT_PUBLIC_API_URL;
+      const response = await fetch(`${apiBase}/api/v1/users/github-token`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ token: patToken.trim() }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to save GitHub token (${response.status})`);
+      }
+
+      setHasGithubToken(true);
+      setPatToken('');
+      setPatSuccessMsg('GitHub Personal Access Token securely stored.');
+      setTimeout(() => setPatSuccessMsg(null), 3000);
+    } catch (err) {
+      console.error('Failed to save GitHub token:', err);
+      setErrorMsg('Failed to save the GitHub token.');
+    } finally {
+      setSavingPat(false);
+    }
+  };
+
+  // Handle GitHub PAT Token Clear
+  const handleClearPat = async () => {
+    setSavingPat(true);
+    setErrorMsg(null);
+    setPatSuccessMsg(null);
+
+    try {
+      const apiBase = env.NEXT_PUBLIC_API_URL;
+      const response = await fetch(`${apiBase}/api/v1/users/github-token`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to clear GitHub token (${response.status})`);
+      }
+
+      setHasGithubToken(false);
+      setPatToken('');
+      setPatSuccessMsg('GitHub Personal Access Token cleared.');
+      setTimeout(() => setPatSuccessMsg(null), 3000);
+    } catch (err) {
+      console.error('Failed to clear GitHub token:', err);
+      setErrorMsg('Failed to clear the GitHub token.');
+    } finally {
+      setSavingPat(false);
+    }
+  };
 
   // Handle Settings Saving
   const handleSave = async () => {
@@ -493,6 +561,62 @@ export default function SettingsPage() {
                 </div>
               );
             })}
+          </div>
+        </div>
+
+        {/* GitHub Access Token Management Block */}
+        <div className="glass-card rounded-3xl p-6 flex flex-col gap-5 lg:col-span-2 border border-white/5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/5 pb-4">
+            <h3 className="font-extrabold text-sm text-white tracking-wide flex items-center gap-2.5">
+              <KeyRound className="w-5 h-5 text-violet-400" />
+              GitHub Personal Access Token (PAT)
+            </h3>
+            <span
+              className={`px-2.5 py-1 rounded-full text-[10px] font-bold self-start sm:self-auto ${
+                hasGithubToken
+                  ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                  : 'bg-zinc-800 border border-white/5 text-zinc-400'
+              }`}
+            >
+              {hasGithubToken ? 'PAT Active' : 'Optional (OAuth Active)'}
+            </span>
+          </div>
+
+          {patSuccessMsg && (
+            <div className="flex items-center gap-2 px-4 py-3 bg-emerald-500/10 border border-emerald-500/25 rounded-xl text-emerald-400 text-xs font-semibold">
+              <Check className="w-4 h-4" />
+              <span>{patSuccessMsg}</span>
+            </div>
+          )}
+
+          <p className="text-zinc-400 text-xs leading-relaxed max-w-2xl">
+            Your normal GitHub account is already authenticated. Adding a Personal Access Token (PAT) is <strong className="text-zinc-200">optional</strong>, and enables higher API rate limits (5,000 req/hr) and access to private repository metrics.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+            <input
+              type="password"
+              placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+              value={patToken}
+              onChange={(e) => setPatToken(e.target.value)}
+              className="bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-violet-500 font-mono flex-1"
+            />
+            <button
+              onClick={handleSavePat}
+              disabled={savingPat || !patToken.trim()}
+              className="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-xs font-extrabold text-white rounded-xl transition-all cursor-pointer disabled:opacity-50"
+            >
+              {savingPat ? 'Saving...' : 'Save Token'}
+            </button>
+            {hasGithubToken && (
+              <button
+                onClick={handleClearPat}
+                disabled={savingPat}
+                className="px-4 py-2.5 border border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10 text-xs font-bold text-rose-400 rounded-xl transition-all cursor-pointer disabled:opacity-50"
+              >
+                Clear Token
+              </button>
+            )}
           </div>
         </div>
       </div>

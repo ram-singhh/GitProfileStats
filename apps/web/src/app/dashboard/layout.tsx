@@ -29,9 +29,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     username: string;
     email: string | null;
     avatarUrl: string;
+    hasGithubToken?: boolean;
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -62,7 +65,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     fetchProfile();
   }, [router]);
 
-  const handleLogout = () => {
+  // Close dropdowns on route change or ESC
+  useEffect(() => {
+    setProfileDropdownOpen(false);
+    setNotificationsOpen(false);
+    setMobileSidebarOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setProfileDropdownOpen(false);
+        setNotificationsOpen(false);
+        setMobileSidebarOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      const apiBase = env.NEXT_PUBLIC_API_URL;
+      await fetch(`${apiBase}/api/v1/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
     router.push('/');
   };
 
@@ -110,14 +141,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Desktop Sidebar (Left side, fixed layout) */}
       <aside className="hidden md:flex md:w-64 border-r border-white/5 bg-[#030014]/60 backdrop-blur-xl flex-col shrink-0 z-20">
         {/* Brand/Logo */}
-        <div className="h-16 px-6 border-b border-white/5 flex items-center gap-2.5">
+        <Link
+          href="/dashboard"
+          className="h-16 px-6 border-b border-white/5 flex items-center gap-2.5 hover:opacity-90 transition-opacity"
+        >
           <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-violet-600 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-violet-500/25">
             <Terminal className="w-4.5 h-4.5 text-white" />
           </div>
           <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-400 bg-clip-text text-transparent">
             GitProfile<span className="text-violet-500 font-semibold">Stats</span>
           </span>
-        </div>
+        </Link>
 
         {/* Navigation Items */}
         <nav className="flex-1 px-4 py-6 flex flex-col gap-1.5">
@@ -148,7 +182,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* User Footer Profile & Logout */}
         <div className="p-4 border-t border-white/5 bg-[#05021a]/30 flex flex-col gap-3">
-          <div className="flex items-center gap-3 px-2 py-1.5">
+          <Link
+            href="/dashboard/settings"
+            className="flex items-center gap-3 px-2 py-1.5 rounded-xl hover:bg-white/5 transition-colors group"
+          >
             <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-violet-600 to-fuchsia-600 p-[1px] overflow-hidden shrink-0">
               {user?.avatarUrl ? (
                 <Image
@@ -165,10 +202,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <h5 className="font-semibold text-sm text-white truncate">@{user?.username}</h5>
+              <h5 className="font-semibold text-sm text-white truncate group-hover:text-violet-400 transition-colors">
+                @{user?.username}
+              </h5>
               <p className="text-zinc-500 text-xs truncate">{user?.email || 'GitHub User'}</p>
             </div>
-          </div>
+          </Link>
 
           <button
             onClick={handleLogout}
@@ -239,7 +278,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             {/* Mobile Sidebar Footer info */}
             <div className="pt-4 border-t border-white/5 flex flex-col gap-4">
-              <div className="flex items-center gap-3 px-2">
+              <Link
+                href="/dashboard/settings"
+                onClick={() => setMobileSidebarOpen(false)}
+                className="flex items-center gap-3 px-2 py-1.5 rounded-xl hover:bg-white/5"
+              >
                 <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-violet-600 to-fuchsia-600 p-[1px] overflow-hidden shrink-0">
                   {user?.avatarUrl ? (
                     <Image
@@ -259,7 +302,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <h5 className="font-semibold text-sm text-white truncate">@{user?.username}</h5>
                   <p className="text-zinc-500 text-xs truncate">{user?.email || 'GitHub User'}</p>
                 </div>
-              </div>
+              </Link>
 
               <button
                 onClick={handleLogout}
@@ -276,8 +319,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Main Layout Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
         {/* Sticky Header */}
-        <header className="sticky top-0 z-10 h-16 border-b border-white/5 bg-[#030014]/70 backdrop-blur-md flex items-center justify-between px-6 md:px-10">
-          <div className="flex items-center gap-4">
+        <header className="sticky top-0 z-30 h-16 border-b border-white/5 bg-[#030014]/80 backdrop-blur-md flex items-center justify-between px-4 sm:px-6 md:px-10">
+          <div className="flex items-center gap-3 md:gap-4">
             {/* Hamburger Toggle Button for mobile */}
             <button
               onClick={() => setMobileSidebarOpen(true)}
@@ -288,70 +331,183 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </button>
 
             {/* Page title based on route */}
-            <h2 className="text-lg font-bold text-white tracking-tight">
+            <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
               {pathname === '/dashboard'
-                ? 'Dashboard Overview'
+                ? 'Overview'
                 : pathname === '/dashboard/cards'
-                  ? 'Card Preview & Customizer'
+                  ? 'Card Preview & Generator'
                   : pathname === '/dashboard/themes'
                     ? 'Theme Gallery'
                     : pathname === '/dashboard/repositories'
-                      ? 'GitHub Repositories'
+                      ? 'Repositories'
                       : pathname === '/dashboard/activity'
-                        ? 'Recent Activity'
+                        ? 'Activity & Streaks'
                         : pathname === '/dashboard/settings'
-                          ? 'User Settings'
+                          ? 'Settings'
                           : 'GitProfileStats'}
             </h2>
           </div>
 
           {/* Header Action Items */}
-          <div className="flex items-center gap-4">
-            {/* Mock Search Bar */}
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/5 bg-white/[0.02] text-zinc-400 focus-within:border-violet-500/50 transition-all">
-              <Search className="w-4 h-4 text-zinc-500" />
-              <input
-                type="text"
-                placeholder="Search resources..."
-                className="bg-transparent border-none text-xs text-white focus:outline-none w-40 md:w-48 placeholder-zinc-500"
-                aria-label="Search resources"
-              />
+          <div className="flex items-center gap-2 sm:gap-3 relative">
+            {/* Notification Center */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setNotificationsOpen(!notificationsOpen);
+                  setProfileDropdownOpen(false);
+                }}
+                className={`p-2 rounded-xl border text-zinc-400 hover:text-white transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 ${
+                  notificationsOpen
+                    ? 'border-violet-500/50 bg-violet-500/10 text-violet-300'
+                    : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05]'
+                }`}
+                aria-label="System status and notifications"
+                aria-expanded={notificationsOpen}
+              >
+                <Bell className="w-4 h-4" />
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-500" />
+              </button>
+
+              {/* Notification Popover Dropdown */}
+              {notificationsOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setNotificationsOpen(false)}
+                  />
+                  <div className="absolute right-0 top-full mt-2 w-80 sm:w-88 rounded-2xl bg-[#08051e] border border-white/10 shadow-2xl p-4 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="flex items-center justify-between pb-3 border-b border-white/5">
+                      <span className="text-xs font-bold text-white uppercase tracking-wider">
+                        System Status
+                      </span>
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+                        Operational
+                      </span>
+                    </div>
+                    <div className="flex flex-col gap-2.5 mt-3 text-xs">
+                      <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col gap-1">
+                        <div className="flex items-center justify-between text-zinc-300 font-semibold">
+                          <span>GitHub API Connection</span>
+                          <span className="text-emerald-400 text-[10px]">Active</span>
+                        </div>
+                        <p className="text-[10px] text-zinc-500 leading-normal">
+                          Card SVG generation endpoints are connected and cached at the edge.
+                        </p>
+                      </div>
+                      <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col gap-1">
+                        <div className="flex items-center justify-between text-zinc-300 font-semibold">
+                          <span>Rate Limits</span>
+                          <span className="text-violet-400 text-[10px]">Normal</span>
+                        </div>
+                        <p className="text-[10px] text-zinc-500 leading-normal">
+                          For high traffic or private repos, ensure your GitHub PAT is saved in Settings.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* Notification Widget */}
-            <button
-              className="p-2 rounded-lg border border-white/5 bg-white/[0.02] text-zinc-400 hover:text-white hover:bg-white/[0.05] relative transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
-              aria-label="Notifications"
-            >
-              <Bell className="w-4 h-4" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-violet-500" />
-            </button>
-
             {/* Quick Profile Dropdown Menu */}
-            <button className="flex items-center gap-2 border border-white/5 bg-white/[0.02] hover:bg-white/[0.05] px-3 py-1.5 rounded-xl text-zinc-300 hover:text-white cursor-pointer transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500">
-              <div className="w-6 h-6 rounded-full overflow-hidden shrink-0">
-                {user?.avatarUrl ? (
-                  <Image
-                    src={user.avatarUrl}
-                    alt={`${user.username}'s GitHub avatar`}
-                    width={24}
-                    height={24}
-                    className="w-full h-full object-cover"
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setProfileDropdownOpen(!profileDropdownOpen);
+                  setNotificationsOpen(false);
+                }}
+                className={`flex items-center gap-2 border px-3 py-1.5 rounded-xl text-zinc-300 hover:text-white cursor-pointer transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 ${
+                  profileDropdownOpen
+                    ? 'border-violet-500/50 bg-violet-500/10'
+                    : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05]'
+                }`}
+                aria-expanded={profileDropdownOpen}
+                aria-label="User profile menu"
+              >
+                <div className="w-6 h-6 rounded-full overflow-hidden shrink-0 border border-white/10">
+                  {user?.avatarUrl ? (
+                    <Image
+                      src={user.avatarUrl}
+                      alt={`${user.username}'s GitHub avatar`}
+                      width={24}
+                      height={24}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-zinc-800 flex items-center justify-center font-bold text-[10px] text-white">
+                      U
+                    </div>
+                  )}
+                </div>
+                <span className="hidden sm:inline text-xs font-semibold">@{user?.username}</span>
+                <ChevronDown
+                  className={`w-3.5 h-3.5 text-zinc-500 transition-transform duration-200 ${
+                    profileDropdownOpen ? 'rotate-180 text-violet-400' : ''
+                  }`}
+                />
+              </button>
+
+              {/* Profile Menu Dropdown */}
+              {profileDropdownOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setProfileDropdownOpen(false)}
                   />
-                ) : (
-                  <div className="w-full h-full bg-zinc-800 flex items-center justify-center font-bold text-[10px] text-white">
-                    U
+                  <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl bg-[#08051e] border border-white/10 shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200 flex flex-col gap-1">
+                    <div className="px-3 py-2 border-b border-white/5">
+                      <p className="text-xs font-bold text-white truncate">@{user?.username}</p>
+                      <p className="text-[10px] text-zinc-500 truncate">{user?.email || 'GitHub Account'}</p>
+                    </div>
+
+                    <a
+                      href={`https://github.com/${user?.username}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-3 py-2 text-xs font-semibold text-zinc-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors flex items-center justify-between"
+                      onClick={() => setProfileDropdownOpen(false)}
+                    >
+                      <span>GitHub Profile</span>
+                      <Terminal className="w-3.5 h-3.5 text-zinc-500" />
+                    </a>
+
+                    <Link
+                      href="/dashboard/cards"
+                      className="px-3 py-2 text-xs font-semibold text-zinc-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors flex items-center justify-between"
+                      onClick={() => setProfileDropdownOpen(false)}
+                    >
+                      <span>Card Studio</span>
+                      <CreditCard className="w-3.5 h-3.5 text-zinc-500" />
+                    </Link>
+
+                    <Link
+                      href="/dashboard/settings"
+                      className="px-3 py-2 text-xs font-semibold text-zinc-300 hover:text-white hover:bg-white/5 rounded-xl transition-colors flex items-center justify-between"
+                      onClick={() => setProfileDropdownOpen(false)}
+                    >
+                      <span>Settings & PAT</span>
+                      <Settings className="w-3.5 h-3.5 text-zinc-500" />
+                    </Link>
+
+                    <div className="border-t border-white/5 my-1" />
+
+                    <button
+                      onClick={handleLogout}
+                      className="w-full px-3 py-2 text-xs font-semibold text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors flex items-center justify-between text-left cursor-pointer"
+                    >
+                      <span>Log Out</span>
+                      <LogOut className="w-3.5 h-3.5 text-rose-400" />
+                    </button>
                   </div>
-                )}
-              </div>
-              <span className="hidden sm:inline text-xs font-semibold">@{user?.username}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-zinc-500" />
-            </button>
+                </>
+              )}
+            </div>
           </div>
         </header>
 
         {/* Page Content viewport */}
-        <main className="flex-1 p-6 md:p-10 max-w-7xl mx-auto w-full overflow-x-hidden">
+        <main className="flex-1 p-4 sm:p-6 md:p-10 max-w-7xl mx-auto w-full overflow-x-hidden">
           {children}
         </main>
       </div>

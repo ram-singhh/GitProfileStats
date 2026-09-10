@@ -211,18 +211,18 @@ export default function ThemeGalleryPage() {
     fetchUserSettings();
   }, [router]);
 
-  // Load preview SVGs when username, repo, selected card, or demoMode change
-  useEffect(() => {
-    const apiBase = env.NEXT_PUBLIC_API_URL;
-    THEMES_INFO.forEach(async (theme) => {
+  // Fetch single theme preview SVG
+  const fetchThemePreview = React.useCallback(
+    async (themeId: string) => {
       setPreviews((prev) => ({
         ...prev,
-        [theme.id]: { ...prev[theme.id], loading: true, error: null },
+        [themeId]: { ...prev[themeId], loading: true, error: null },
       }));
 
       try {
+        const apiBase = env.NEXT_PUBLIC_API_URL;
         const params = new URLSearchParams();
-        params.append('theme', theme.id);
+        params.append('theme', themeId);
 
         let endpoint = '';
         if (selectedCard === 'repository') {
@@ -248,8 +248,8 @@ export default function ThemeGalleryPage() {
 
         setPreviews((prev) => ({
           ...prev,
-          [theme.id]: {
-            ...prev[theme.id],
+          [themeId]: {
+            ...prev[themeId],
             svg: svgContent,
             loading: false,
             error: null,
@@ -257,18 +257,26 @@ export default function ThemeGalleryPage() {
         }));
       } catch (err) {
         const error = err instanceof Error ? err : new Error(String(err));
-        console.error(`Theme gallery error fetching ${selectedCard} for theme ${theme.id}:`, error);
+        console.error(`Theme gallery error fetching ${selectedCard} for theme ${themeId}:`, error);
         setPreviews((prev) => ({
           ...prev,
-          [theme.id]: {
-            ...prev[theme.id],
+          [themeId]: {
+            ...prev[themeId],
             loading: false,
             error: error.message || 'Failed to load card.',
           },
         }));
       }
+    },
+    [username, repoName, selectedCard]
+  );
+
+  // Load preview SVGs when username, repo, or selected card change
+  useEffect(() => {
+    THEMES_INFO.forEach((theme) => {
+      fetchThemePreview(theme.id);
     });
-  }, [username, repoName, selectedCard]);
+  }, [fetchThemePreview]);
 
   // Handle username/repo form submissions
   const handleApplyTargets = (e: React.FormEvent) => {
@@ -594,11 +602,17 @@ export default function ThemeGalleryPage() {
                     </span>
                   </div>
                 ) : preview.error ? (
-                  <div className="flex flex-col items-center gap-2 p-4 text-center max-w-[80%]">
+                  <div className="flex flex-col items-center gap-3 p-4 text-center max-w-[80%]">
                     <AlertTriangle className="w-8 h-8 text-rose-500/80 animate-bounce" />
                     <span className="text-[11px] font-bold text-zinc-400 leading-normal">
                       {preview.error}
                     </span>
+                    <button
+                      onClick={() => fetchThemePreview(theme.id)}
+                      className="px-3 py-1.5 border border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-xl text-xs font-bold transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+                    >
+                      Retry
+                    </button>
                   </div>
                 ) : (
                   <div className="w-full flex justify-center items-center select-none overflow-hidden py-2">

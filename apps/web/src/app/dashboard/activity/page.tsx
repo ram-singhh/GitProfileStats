@@ -13,8 +13,6 @@ import {
   AlertTriangle,
   WifiOff,
   Folder,
-  KeyRound,
-  X,
 } from 'lucide-react';
 
 export default function ActivityPage() {

@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { env } from '@/config/env';
+import Link from 'next/link';
 import Image from 'next/image';
 import {
   MapPin,
@@ -13,11 +14,8 @@ import {
   GitFork,
   RefreshCw,
   ExternalLink,
-  ShieldCheck,
-  Zap,
   Globe,
   Award,
-  Users,
   Folder,
   Eye,
   AlertTriangle,
@@ -26,14 +24,15 @@ import {
   BookOpen,
   CalendarDays,
   Flame,
-  Info,
   Settings,
   KeyRound,
   X,
   WifiOff,
+  CreditCard,
+  Palette,
+  ArrowRight,
 } from 'lucide-react';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
-
 import { useDashboardStats } from './hooks/useDashboardStats';
 import { LANGUAGE_COLORS } from './types';
 
@@ -53,11 +52,13 @@ export default function DashboardPage() {
 
   const [syncing, setSyncing] = useState(false);
   const [patToken, setPatToken] = useState('');
-  const [showPatInput, setShowPatInput] = useState(false);
+  const [showPatModal, setShowPatModal] = useState(false);
+  const [patSaving, setPatSaving] = useState(false);
 
   const handleSavePat = async () => {
     if (!user || !patToken.trim()) return;
 
+    setPatSaving(true);
     try {
       const apiBase = env.NEXT_PUBLIC_API_URL;
       const response = await fetch(`${apiBase}/api/v1/users/github-token`, {
@@ -73,17 +74,20 @@ export default function DashboardPage() {
 
       setPatToken('');
       setHasGithubToken(true);
-      setShowPatInput(false);
+      setShowPatModal(false);
       loadStats(user.username);
     } catch (err) {
       console.error('Failed to save GitHub token:', err);
       setStatsError('Failed to save the GitHub token securely.');
+    } finally {
+      setPatSaving(false);
     }
   };
 
   const handleClearPat = async () => {
     if (!user) return;
 
+    setPatSaving(true);
     try {
       const apiBase = env.NEXT_PUBLIC_API_URL;
       const response = await fetch(`${apiBase}/api/v1/users/github-token`, {
@@ -97,10 +101,13 @@ export default function DashboardPage() {
 
       setHasGithubToken(false);
       setPatToken('');
+      setShowPatModal(false);
       loadStats(user.username);
     } catch (err) {
       console.error('Failed to clear GitHub token:', err);
       setStatsError('Failed to clear the GitHub token securely.');
+    } finally {
+      setPatSaving(false);
     }
   };
 
@@ -116,12 +123,10 @@ export default function DashboardPage() {
     return null; // layout.tsx displays session verifier spinner
   }
 
-  const bio = loadingStats ? 'Loading bio...' : (stats?.userProfile.bio ?? 'No bio provided');
-  const location = loadingStats ? 'Loading location...' : (stats?.userProfile.location ?? null);
-  const company = loadingStats ? 'Loading organization...' : (stats?.userProfile.company ?? null);
-  const website = loadingStats
-    ? `github.com/${user?.username ?? ''}`
-    : (stats?.userProfile.blog ?? `github.com/${user?.username ?? ''}`);
+  const bio = stats?.userProfile?.bio ?? 'Developer on GitHub';
+  const location = stats?.userProfile?.location ?? null;
+  const company = stats?.userProfile?.company ?? null;
+  const website = stats?.userProfile?.blog ?? null;
 
   const getWebsiteLink = (webStr: string) => {
     if (!webStr) return '';
@@ -136,7 +141,6 @@ export default function DashboardPage() {
     return webStr.replace(/^https?:\/\/(www\.)?/, '');
   };
 
-  // Custom mapping for contribution day background to blend with application theme
   const getContributionColor = (count: number) => {
     if (count === 0) return 'rgba(255, 255, 255, 0.03)';
     if (count <= 2) return 'rgba(139, 92, 246, 0.25)';
@@ -145,7 +149,6 @@ export default function DashboardPage() {
     return 'rgba(236, 72, 153, 0.95)';
   };
 
-  // Helper for rendering horizontal month labels above the calendar columns
   const renderMonthLabels = () => {
     if (!stats?.contributionStats?.contributionCalendar?.weeks) return null;
     const weeks = stats.contributionStats.contributionCalendar.weeks;
@@ -189,7 +192,8 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6 w-full select-none">
+    <div className="flex flex-col gap-8 w-full select-none pb-16">
+      {/* Offline Alert */}
       {!isOnline && (
         <div className="w-full flex flex-col sm:flex-row items-center justify-between px-6 py-4 rounded-3xl border border-amber-500/20 bg-amber-500/5 text-xs text-amber-400 backdrop-blur-md shadow-lg shadow-amber-950/20 animate-in fade-in duration-300 gap-4">
           <div className="flex items-center gap-3">
@@ -213,828 +217,795 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="flex flex-col lg:flex-row gap-8 items-start w-full">
-        {/* LEFT COLUMN: User Profile & Configuration Section */}
-        <section className="w-full lg:w-80 shrink-0 flex flex-col gap-6">
-          {/* Profile Card */}
-          <div className="glass-card rounded-3xl overflow-hidden relative animate-profile-entrance">
-            {/* Cover Banner */}
-            <div className="h-28 bg-gradient-to-tr from-violet-600 via-indigo-600 to-fuchsia-600 relative overflow-hidden animate-banner-gradient">
-              <div className="absolute inset-0 bg-black/20" />
-              <div className="absolute bottom-2 right-4 flex items-center gap-1 bg-black/40 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/10 text-[9px] font-mono text-zinc-300 animate-pulse-glow">
-                <ShieldCheck className="w-3 h-3 text-violet-400" />
-                <span>Verified Account</span>
+      {/* GitHub Token Config Modal */}
+      {showPatModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-md glass-card rounded-3xl p-6 border border-white/10 shadow-2xl flex flex-col gap-4 relative">
+            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400">
+                  <KeyRound className="w-4 h-4" />
+                </div>
+                <h3 className="font-extrabold text-sm text-white">GitHub Access Token</h3>
               </div>
+              <button
+                onClick={() => setShowPatModal(false)}
+                className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            <div className="px-6 pb-6 pt-0 relative flex flex-col items-center text-center">
-              {/* Overlapping Avatar */}
-              <div className="w-24 h-24 rounded-full p-[2px] -mt-12 overflow-hidden shadow-2xl relative profile-avatar-container">
-                {user?.avatarUrl ? (
-                  <Image
-                    src={user.avatarUrl}
-                    alt={`${user.username}'s GitHub avatar`}
-                    width={96}
-                    height={96}
-                    className="w-full h-full rounded-full object-cover bg-[#090620]"
-                  />
-                ) : (
-                  <div className="w-full h-full rounded-full bg-zinc-950 flex items-center justify-center font-black text-2xl text-white">
-                    {user?.username?.substring(0, 2).toUpperCase() || 'US'}
-                  </div>
-                )}
+            <p className="text-zinc-400 text-xs leading-relaxed">
+              Your standard GitHub login is already connected. A Personal Access Token (PAT) is{' '}
+              <strong className="text-zinc-200">completely optional</strong>, useful if you want to include
+              private repositories or bypass public API rate limits.
+            </p>
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="modal-pat-input" className="text-xs font-semibold text-zinc-300">
+                Token (classic or fine-grained)
+              </label>
+              <input
+                id="modal-pat-input"
+                type="password"
+                placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                value={patToken}
+                onChange={(e) => setPatToken(e.target.value)}
+                className="bg-black/60 border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-violet-500 font-mono"
+              />
+            </div>
+
+            <div className="flex items-center justify-between border-t border-white/5 pt-4 mt-2">
+              {hasGithubToken ? (
+                <button
+                  type="button"
+                  onClick={handleClearPat}
+                  disabled={patSaving}
+                  className="px-3 py-2 text-xs font-bold text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all cursor-pointer disabled:opacity-50"
+                >
+                  Clear Saved Token
+                </button>
+              ) : (
+                <div />
+              )}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPatModal(false)}
+                  className="px-4 py-2 border border-white/5 rounded-xl text-xs font-bold text-zinc-400 hover:text-white transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSavePat}
+                  disabled={patSaving || !patToken.trim()}
+                  className="px-4 py-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-xs font-extrabold text-white rounded-xl transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {patSaving ? 'Saving...' : 'Save Token'}
+                </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-              {/* Profile Identifiers */}
-              <h3 className="font-extrabold text-xl text-white mt-4 tracking-tight">
-                {user?.username}
-              </h3>
-              <p className="text-violet-400 text-sm font-semibold mt-0.5">@{user?.username}</p>
+      {/* 1. TOP PROFILE & HERO BANNER */}
+      <section className="glass-card rounded-3xl overflow-hidden relative border border-white/10 shadow-xl">
+        {/* Decorative Top Accent Bar */}
+        <div className="h-24 sm:h-28 bg-gradient-to-r from-violet-600 via-indigo-600 to-fuchsia-600 relative overflow-hidden">
+          <div className="absolute inset-0 bg-black/20" />
+          <div className="absolute top-4 right-4 flex items-center gap-2">
+            <button
+              onClick={() => setShowPatModal(true)}
+              className={`px-3 py-1.5 rounded-full border text-[11px] font-semibold backdrop-blur-md flex items-center gap-1.5 transition-all cursor-pointer ${
+                hasGithubToken
+                  ? 'border-emerald-500/30 bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
+                  : 'border-white/10 bg-black/40 text-zinc-400 hover:text-zinc-200 hover:bg-black/60'
+              }`}
+            >
+              <KeyRound className="w-3.5 h-3.5" />
+              <span>{hasGithubToken ? 'PAT Active' : 'PAT (Optional)'}</span>
+            </button>
+          </div>
+        </div>
 
-              {/* Bio Description */}
-              <p className="text-zinc-400 text-xs mt-3 leading-relaxed max-w-[240px]">{bio}</p>
-
-              {/* Sync Status Button */}
-              <button
-                onClick={handleSync}
-                disabled={syncing || loadingStats || !isOnline}
-                className="mt-5 w-full py-2.5 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 text-white font-semibold text-xs flex items-center justify-center gap-2 hover:scale-[1.01] active:scale-[0.99] transition-all cursor-pointer disabled:opacity-50"
-              >
-                <RefreshCw
-                  className={`w-3.5 h-3.5 ${syncing || loadingStats ? 'animate-spin text-violet-400' : 'text-zinc-400'}`}
+        {/* Profile Content Details */}
+        <div className="px-6 sm:px-8 pb-8 pt-0 relative flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5 -mt-12 text-center sm:text-left">
+            {/* Avatar */}
+            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl p-1 bg-gradient-to-tr from-violet-600 to-fuchsia-600 shadow-2xl shrink-0 overflow-hidden">
+              {user?.avatarUrl ? (
+                <Image
+                  src={user.avatarUrl}
+                  alt={`${user.username}'s GitHub avatar`}
+                  width={112}
+                  height={112}
+                  className="w-full h-full rounded-[22px] object-cover bg-zinc-950"
                 />
-                <span>
-                  {!isOnline
-                    ? 'Sync Disabled (Offline)'
-                    : syncing
-                      ? 'Fetching stats...'
-                      : 'Refresh Stats Data'}
-                </span>
-              </button>
+              ) : (
+                <div className="w-full h-full rounded-[22px] bg-zinc-950 flex items-center justify-center font-black text-3xl text-white">
+                  {user?.username?.substring(0, 2).toUpperCase() || 'US'}
+                </div>
+              )}
+            </div>
 
-              {/* Metadata Links */}
-              <div className="w-full border-t border-white/5 mt-5 pt-4 flex flex-col gap-2.5 text-left text-xs text-zinc-400">
+            {/* Profile Info */}
+            <div className="flex flex-col gap-1">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                <h1 className="font-extrabold text-2xl sm:text-3xl text-white tracking-tight">
+                  {user?.username}
+                </h1>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-500/10 border border-violet-500/20 text-violet-400">
+                  @{user?.username}
+                </span>
+              </div>
+              <p className="text-zinc-400 text-xs sm:text-sm max-w-xl line-clamp-2 leading-relaxed">
+                {bio}
+              </p>
+
+              {/* Meta tags */}
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 mt-2 text-xs text-zinc-400">
                 {location && (
-                  <div className="flex items-center gap-2.5">
-                    <MapPin className="w-4 h-4 text-zinc-500 shrink-0" />
-                    <span className="truncate">{location}</span>
-                  </div>
+                  <span className="flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5 text-zinc-500" />
+                    {location}
+                  </span>
                 )}
                 {company && (
-                  <div className="flex items-center gap-2.5">
-                    <Globe className="w-4 h-4 text-zinc-500 shrink-0" />
-                    <span className="truncate">{company}</span>
-                  </div>
+                  <span className="flex items-center gap-1">
+                    <Globe className="w-3.5 h-3.5 text-zinc-500" />
+                    {company}
+                  </span>
                 )}
                 {user?.email && (
-                  <div className="flex items-center gap-2.5">
-                    <Mail className="w-4 h-4 text-zinc-500 shrink-0" />
-                    <span className="truncate">{user.email}</span>
-                  </div>
+                  <span className="flex items-center gap-1">
+                    <Mail className="w-3.5 h-3.5 text-zinc-500" />
+                    {user.email}
+                  </span>
                 )}
                 {website && (
-                  <div className="flex items-center gap-2.5">
-                    <LinkIcon className="w-4 h-4 text-zinc-500 shrink-0" />
-                    <a
-                      href={getWebsiteLink(website)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-violet-400 truncate flex items-center gap-1 group"
-                    >
-                      <span>{getWebsiteDisplay(website)}</span>
-                      <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    </a>
-                  </div>
+                  <a
+                    href={getWebsiteLink(website)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-violet-400 hover:underline"
+                  >
+                    <LinkIcon className="w-3.5 h-3.5" />
+                    {getWebsiteDisplay(website)}
+                  </a>
                 )}
               </div>
             </div>
           </div>
 
-          {/* Configuration panel (PAT / Demo Switch) */}
-          <div className="glass-card rounded-3xl p-5.5 flex flex-col gap-4">
-            <h4 className="font-bold text-xs text-zinc-400 tracking-wider uppercase flex items-center gap-1.5 border-b border-white/5 pb-2.5">
-              <Settings className="w-4 h-4 text-violet-400" />
-              Dashboard settings
-            </h4>
+          {/* Quick Actions Buttons */}
+          <div className="flex flex-wrap items-center justify-center sm:justify-start md:justify-end gap-3 shrink-0">
+            <button
+              onClick={handleSync}
+              disabled={syncing || loadingStats || !isOnline}
+              className="px-4 py-2.5 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 text-white font-bold text-xs flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50 active:scale-95"
+            >
+              <RefreshCw
+                className={`w-3.5 h-3.5 ${syncing || loadingStats ? 'animate-spin text-violet-400' : 'text-zinc-400'}`}
+              />
+              <span>{syncing ? 'Syncing...' : 'Sync Stats'}</span>
+            </button>
 
-            {/* GitHub Token PAT Management */}
-            <div className="flex flex-col gap-2 mt-1">
-              <label htmlFor="github-token-input" className="text-xs text-zinc-300 font-medium">
-                GitHub Access Token
-              </label>
+            <Link
+              href="/dashboard/cards"
+              className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-extrabold text-xs flex items-center gap-2 shadow-lg shadow-violet-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <CreditCard className="w-4 h-4" />
+              <span>Customize Cards</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+        </div>
+      </section>
 
-              {showPatInput ? (
-                <div className="flex flex-col gap-2 mt-1">
-                  <input
-                    id="github-token-input"
-                    type="password"
-                    placeholder="ghp_xxxxxxxxxxxx"
-                    value={patToken}
-                    onChange={(e) => setPatToken(e.target.value)}
-                    className="bg-black/60 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-violet-500/80 transition-all font-mono"
-                  />
-                  <div className="flex gap-2 justify-end mt-0.5">
-                    <button
-                      onClick={() => setShowPatInput(false)}
-                      className="px-2.5 py-1.5 rounded-lg border border-white/5 text-[10px] text-zinc-400 font-bold hover:text-white transition-all cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleSavePat}
-                      className="px-3 py-1.5 rounded-lg bg-violet-600 text-[10px] text-white font-bold hover:bg-violet-500 transition-all cursor-pointer"
-                    >
-                      Save & Apply
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between bg-black/35 rounded-xl border border-white/5 px-3 py-2">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <KeyRound className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
-                    <span className="text-xs text-zinc-400 truncate">
-                      {hasGithubToken ? 'Token Configured' : 'No Token Set'}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => setShowPatInput(true)}
-                    className="text-[10px] text-violet-400 hover:text-violet-300 font-bold transition-all cursor-pointer"
-                  >
-                    {hasGithubToken ? 'Edit' : 'Set PAT'}
-                  </button>
-                </div>
-              )}
-
-              {hasGithubToken && !showPatInput && (
+      {/* 2. ERROR STATE NOTIFICATION */}
+      {statsError && !loadingStats && !stats && (
+        <div className="glass-card rounded-3xl p-6 border-rose-500/25 bg-rose-500/5 flex flex-col sm:flex-row gap-5 items-start animate-in fade-in duration-300">
+          <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/25 flex items-center justify-center text-rose-400 shrink-0">
+            <AlertTriangle className="w-6 h-6" />
+          </div>
+          <div className="flex-1 flex flex-col gap-2">
+            <h4 className="font-bold text-base text-white">GitHub API Connection Issue</h4>
+            <p className="text-zinc-400 text-xs leading-relaxed">{statsError}</p>
+            <div className="flex flex-wrap gap-3 mt-2">
+              <button
+                onClick={() => setShowPatModal(true)}
+                className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                <span>Configure GitHub PAT</span>
+              </button>
+              {isOnline && user && (
                 <button
-                  onClick={handleClearPat}
-                  className="text-[9px] text-zinc-500 hover:text-zinc-300 transition-all self-start flex items-center gap-1 mt-1 cursor-pointer"
+                  onClick={() => loadStats(user.username)}
+                  className="px-4 py-2 rounded-xl border border-violet-500/30 bg-violet-500/10 text-violet-300 hover:bg-violet-500/20 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
                 >
-                  <X className="w-2.5 h-2.5" />
-                  Clear Server Token
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Retry Connection</span>
                 </button>
               )}
             </div>
           </div>
+        </div>
+      )}
 
-          {/* Developer Badges Card */}
-          <div className="glass-card rounded-3xl p-5 flex flex-col gap-3">
-            <h4 className="font-bold text-xs text-zinc-400 tracking-wider uppercase flex items-center gap-1.5">
-              <Award className="w-4 h-4 text-violet-400" />
-              Developer Status
-            </h4>
-            <div className="flex flex-wrap gap-2 mt-1">
-              <span className="px-2.5 py-1 rounded-lg border border-violet-500/20 bg-violet-500/5 text-violet-400 text-[10px] font-bold flex items-center gap-1">
-                <Zap className="w-3 h-3" /> Early Adopter
-              </span>
-              <span className="px-2.5 py-1 rounded-lg border border-emerald-500/20 bg-emerald-500/5 text-emerald-400 text-[10px] font-bold flex items-center gap-1">
-                <ShieldCheck className="w-3 h-3" /> Premium
-              </span>
-            </div>
+      {/* 3. SKELETON LOADERS */}
+      {loadingStats && (
+        <div className="flex flex-col gap-6 w-full animate-pulse">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="glass-card rounded-3xl p-5 h-28 bg-white/5" />
+            ))}
           </div>
-        </section>
+          <div className="glass-card rounded-3xl p-6 h-56 bg-white/5" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="glass-card rounded-3xl p-6 h-72 bg-white/5" />
+            <div className="glass-card rounded-3xl p-6 h-72 bg-white/5" />
+          </div>
+        </div>
+      )}
 
-        {/* RIGHT COLUMN: Statistics View and Skeletons */}
-        <section className="flex-1 w-full flex flex-col gap-6">
-          {/* FAILURE ALERTS STATE */}
-          {statsError && !loadingStats && !stats && (
-            <div className="glass-card rounded-3xl p-6.5 border-rose-500/25 bg-rose-500/5 flex flex-col gap-5 animate-in fade-in duration-300">
-              <div className="flex gap-4.5 items-start">
-                <div className="w-12 h-12 rounded-2xl bg-rose-500/10 border border-rose-500/25 flex items-center justify-center text-rose-400 shrink-0 shadow-lg shadow-rose-500/5">
-                  <AlertTriangle className="w-6 h-6" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <h4 className="font-bold text-base text-white">GitHub API Connection Failed</h4>
-                  <p className="text-zinc-400 text-xs mt-1 leading-relaxed">{statsError}</p>
-
-                  <div className="mt-4 bg-black/40 rounded-2xl border border-white/5 p-4 flex flex-col gap-2">
-                    <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block">
-                      Troubleshooting Diagnostics:
-                    </span>
-                    <ul className="text-xs text-zinc-400 list-disc list-inside space-y-1">
-                      <li>Check if the target GitHub username exists and is spelled correctly.</li>
-                      <li>Verify your GitHub Personal Access Token (PAT) hasn&apos;t expired.</li>
-                      <li>Ensure your internet connection is active and stable.</li>
-                      <li>
-                        GitHub API rate limits might have been reached. Wait 60s or configure a
-                        custom token.
-                      </li>
-                    </ul>
-                  </div>
-                </div>
+      {/* 4. LOADED DASHBOARD CONTENT */}
+      {stats && !loadingStats && (
+        <div className="flex flex-col gap-8 w-full animate-in fade-in duration-300">
+          {/* A. KEY METRICS GRID */}
+          <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Stars Card */}
+            <div className="glass-card rounded-3xl p-5 flex flex-col gap-3 group relative overflow-hidden border border-white/5">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 transition-transform group-hover:scale-105">
+                <Star className="w-5 h-5 fill-amber-400/10" />
               </div>
-
-              <div className="flex flex-wrap gap-3 pl-0 sm:pl-16 mt-1 border-t border-white/5 pt-4">
-                <button
-                  onClick={() => setShowPatInput(true)}
-                  className="px-4 py-2.5 border border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer hover:scale-[1.01] active:scale-[0.99]"
-                >
-                  <KeyRound className="w-3.5 h-3.5" />
-                  <span>Configure GitHub PAT</span>
-                </button>
-                {isOnline && (
-                  <button
-                    onClick={() => {
-                      if (user) {
-                        loadStats(user.username);
-                      }
-                    }}
-                    className="px-4 py-2.5 border border-violet-500/20 bg-violet-500/5 hover:bg-violet-500/10 text-violet-400 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer hover:scale-[1.01] active:scale-[0.99]"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    <span>Retry Connection</span>
-                  </button>
-                )}
+              <div>
+                <span className="text-zinc-500 text-xs font-bold uppercase tracking-wider">
+                  Total Stars
+                </span>
+                <h3 className="font-extrabold text-2xl sm:text-3xl text-white tracking-tight mt-0.5">
+                  {stats.repositoryStats.totalStars.toLocaleString()}
+                </h3>
               </div>
             </div>
-          )}
 
-          {/* NO STATISTICS FALLBACK STATE */}
-          {!stats && !loadingStats && !statsError && (
-            <div className="glass-card rounded-3xl p-8 flex flex-col items-center justify-center text-center gap-5 border-zinc-500/10 bg-zinc-500/2">
-              <div className="w-16 h-16 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400">
-                <Folder className="w-8 h-8" />
+            {/* Commits Card */}
+            <div className="glass-card rounded-3xl p-5 flex flex-col gap-3 group relative overflow-hidden border border-white/5">
+              <div className="w-10 h-10 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400 transition-transform group-hover:scale-105">
+                <GitCommit className="w-5 h-5" />
               </div>
-              <div className="max-w-md">
-                <h3 className="font-extrabold text-lg text-white">No Statistics Loaded</h3>
-                <p className="text-zinc-400 text-xs mt-1.5 leading-relaxed">
-                  Your developer statistics details are currently empty. Attach your personal GitHub
-                  PAT to pull live statistics.
+              <div>
+                <span className="text-zinc-500 text-xs font-bold uppercase tracking-wider">
+                  Total Commits
+                </span>
+                <h3 className="font-extrabold text-2xl sm:text-3xl text-white tracking-tight mt-0.5">
+                  {stats.commitStats.totalCommits.toLocaleString()}
+                </h3>
+              </div>
+            </div>
+
+            {/* Contributions Card */}
+            <div className="glass-card rounded-3xl p-5 flex flex-col gap-3 group relative overflow-hidden border border-white/5">
+              <div className="w-10 h-10 rounded-2xl bg-fuchsia-500/10 border border-fuchsia-500/20 flex items-center justify-center text-fuchsia-400 transition-transform group-hover:scale-105">
+                <Flame className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-zinc-500 text-xs font-bold uppercase tracking-wider">
+                  Contributions
+                </span>
+                <h3 className="font-extrabold text-2xl sm:text-3xl text-white tracking-tight mt-0.5">
+                  {stats.contributionStats.totalContributions.toLocaleString()}
+                </h3>
+              </div>
+            </div>
+
+            {/* Repositories Card */}
+            <div className="glass-card rounded-3xl p-5 flex flex-col gap-3 group relative overflow-hidden border border-white/5">
+              <div className="w-10 h-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 transition-transform group-hover:scale-105">
+                <Folder className="w-5 h-5" />
+              </div>
+              <div>
+                <span className="text-zinc-500 text-xs font-bold uppercase tracking-wider">
+                  Repositories
+                </span>
+                <h3 className="font-extrabold text-2xl sm:text-3xl text-white tracking-tight mt-0.5">
+                  {stats.repositoryStats.total.toLocaleString()}
+                </h3>
+              </div>
+            </div>
+          </section>
+
+          {/* B. FIRST-TIME QUICK LAUNCH ACTIONS */}
+          <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Link
+              href="/dashboard/cards"
+              className="glass-card rounded-3xl p-6 flex flex-col justify-between gap-4 border border-violet-500/20 hover:border-violet-500/40 bg-violet-500/[0.03] transition-all group hover:scale-[1.01]"
+            >
+              <div className="flex items-start justify-between">
+                <div className="w-10 h-10 rounded-2xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <ArrowRight className="w-4 h-4 text-zinc-500 group-hover:text-violet-400 group-hover:translate-x-1 transition-all" />
+              </div>
+              <div>
+                <h4 className="font-extrabold text-base text-white">Card Studio & Embeds</h4>
+                <p className="text-zinc-400 text-xs mt-1 leading-relaxed">
+                  Customize SVG cards, adjust zoom, and generate copy-paste markdown for your GitHub
+                  Profile README.
                 </p>
               </div>
-              <div className="flex flex-wrap gap-3 justify-center">
-                <button
-                  onClick={() => setShowPatInput(true)}
-                  className="px-5 py-2.5 border border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-xl font-bold text-xs hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer flex items-center gap-1.5"
-                >
-                  <KeyRound className="w-3.5 h-3.5" />
-                  <span>Configure GitHub PAT</span>
-                </button>
+            </Link>
+
+            <Link
+              href="/dashboard/themes"
+              className="glass-card rounded-3xl p-6 flex flex-col justify-between gap-4 border border-fuchsia-500/20 hover:border-fuchsia-500/40 bg-fuchsia-500/[0.03] transition-all group hover:scale-[1.01]"
+            >
+              <div className="flex items-start justify-between">
+                <div className="w-10 h-10 rounded-2xl bg-fuchsia-500/10 border border-fuchsia-500/20 flex items-center justify-center text-fuchsia-400">
+                  <Palette className="w-5 h-5" />
+                </div>
+                <ArrowRight className="w-4 h-4 text-zinc-500 group-hover:text-fuchsia-400 group-hover:translate-x-1 transition-all" />
+              </div>
+              <div>
+                <h4 className="font-extrabold text-base text-white">Theme Gallery</h4>
+                <p className="text-zinc-400 text-xs mt-1 leading-relaxed">
+                  Browse modern color palettes (Dark, Dracula, Nord, GitHub) and set your default card
+                  theme.
+                </p>
+              </div>
+            </Link>
+
+            <Link
+              href="/dashboard/settings"
+              className="glass-card rounded-3xl p-6 flex flex-col justify-between gap-4 border border-white/5 hover:border-white/10 bg-white/[0.01] transition-all group hover:scale-[1.01]"
+            >
+              <div className="flex items-start justify-between">
+                <div className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-300">
+                  <Settings className="w-5 h-5" />
+                </div>
+                <ArrowRight className="w-4 h-4 text-zinc-500 group-hover:text-white group-hover:translate-x-1 transition-all" />
+              </div>
+              <div>
+                <h4 className="font-extrabold text-base text-white">Preferences & Token</h4>
+                <p className="text-zinc-400 text-xs mt-1 leading-relaxed">
+                  Configure default card styles, language sorting, card visibility, and security PAT
+                  settings.
+                </p>
+              </div>
+            </Link>
+          </section>
+
+          {/* C. ACTIVITY CALENDAR HEATMAP */}
+          <section className="glass-card rounded-3xl p-6 sm:p-8 border border-white/5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-white/5 mb-5">
+              <div>
+                <h3 className="font-extrabold text-base sm:text-lg text-white flex items-center gap-2">
+                  <CalendarDays className="w-5 h-5 text-violet-400" />
+                  Contribution Activity
+                </h3>
+                <p className="text-zinc-500 text-xs mt-0.5">
+                  Daily GitHub contributions and active streaks over the past year.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3 text-xs font-semibold text-zinc-400">
+                <div className="flex items-center gap-1.5 bg-black/40 px-3 py-1.5 rounded-xl border border-white/5">
+                  <Flame className="w-3.5 h-3.5 text-fuchsia-400" />
+                  <span>
+                    Current:{' '}
+                    <strong className="text-white font-bold">
+                      {stats.contributionStats.currentStreak} Days
+                    </strong>
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-black/40 px-3 py-1.5 rounded-xl border border-white/5">
+                  <Award className="w-3.5 h-3.5 text-violet-400" />
+                  <span>
+                    Longest:{' '}
+                    <strong className="text-white font-bold">
+                      {stats.contributionStats.longestStreak} Days
+                    </strong>
+                  </span>
+                </div>
               </div>
             </div>
-          )}
 
-          {/* LOADING STATS SKELETON LOADERS */}
-          {loadingStats && (
-            <div className="flex flex-col gap-6 w-full">
-              {/* Ribbon Metrics Grid Skeleton */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {[1, 2, 3, 4].map((i) => (
-                  <div
-                    key={i}
-                    className="glass-card rounded-3xl p-5 relative overflow-hidden flex flex-col gap-2"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent -translate-x-full animate-shimmer" />
-                    <div className="w-8 h-8 rounded-lg bg-zinc-800/40 animate-pulse" />
-                    <div className="h-3 bg-zinc-800/40 rounded w-1/2 animate-pulse mt-2" />
-                    <div className="h-6 bg-zinc-800/40 rounded w-3/4 animate-pulse mt-1" />
-                  </div>
-                ))}
-              </div>
-
-              {/* Heatmap Graph Skeleton */}
-              <div className="glass-card rounded-3xl p-6 relative overflow-hidden flex flex-col gap-4">
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent -translate-x-full animate-shimmer" />
-                <div className="h-4 bg-zinc-800/40 rounded w-1/4 animate-pulse" />
-                <div className="h-3 bg-zinc-800/40 rounded w-1/3 animate-pulse" />
-                <div className="h-28 bg-zinc-800/20 rounded-xl animate-pulse mt-2" />
-              </div>
-
-              {/* Two Column Layout Skeleton */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="glass-card rounded-3xl p-6 relative overflow-hidden flex flex-col gap-4">
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent -translate-x-full animate-shimmer" />
-                  <div className="h-4 bg-zinc-800/40 rounded w-1/3 animate-pulse" />
-                  <div className="h-24 bg-zinc-800/20 rounded-xl animate-pulse" />
-                </div>
-                <div className="glass-card rounded-3xl p-6 relative overflow-hidden flex flex-col gap-4">
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.02] to-transparent -translate-x-full animate-shimmer" />
-                  <div className="h-4 bg-zinc-800/40 rounded w-1/3 animate-pulse" />
-                  <div className="h-24 bg-zinc-800/20 rounded-xl animate-pulse" />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* FULL DASHBOARD VIEWS WHEN LOADED */}
-          {stats && !loadingStats && (
-            <div className="flex flex-col gap-6 w-full animate-in fade-in duration-300">
-              {/* METRICS GRID: Stars, Commits, Contributions, Followers */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {/* Stars Card */}
-                <div className="glass-card rounded-3xl p-5 flex flex-col gap-3 group relative overflow-hidden">
-                  <div className="absolute -bottom-6 -right-6 w-16 h-16 rounded-full bg-amber-500/5 blur-lg group-hover:bg-amber-500/10 transition-all pointer-events-none" />
-                  <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 transition-transform group-hover:scale-105">
-                    <Star className="w-5 h-5 fill-amber-400/10" />
-                  </div>
-                  <div>
-                    <span className="text-zinc-500 text-xs font-semibold">Total Stars</span>
-                    <h4 className="font-extrabold text-2xl text-white tracking-tight mt-0.5">
-                      {stats.repositoryStats.totalStars.toLocaleString()}
-                    </h4>
-                  </div>
-                </div>
-
-                {/* Commits Card */}
-                <div className="glass-card rounded-3xl p-5 flex flex-col gap-3 group relative overflow-hidden">
-                  <div className="absolute -bottom-6 -right-6 w-16 h-16 rounded-full bg-violet-500/5 blur-lg group-hover:bg-violet-500/10 transition-all pointer-events-none" />
-                  <div className="w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400 transition-transform group-hover:scale-105">
-                    <GitCommit className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="text-zinc-500 text-xs font-semibold">Total Commits</span>
-                    <h4 className="font-extrabold text-2xl text-white tracking-tight mt-0.5">
-                      {stats.commitStats.totalCommits.toLocaleString()}
-                    </h4>
-                  </div>
-                </div>
-
-                {/* Contributions Card */}
-                <div className="glass-card rounded-3xl p-5 flex flex-col gap-3 group relative overflow-hidden">
-                  <div className="absolute -bottom-6 -right-6 w-16 h-16 rounded-full bg-fuchsia-500/5 blur-lg group-hover:bg-fuchsia-500/10 transition-all pointer-events-none" />
-                  <div className="w-9 h-9 rounded-xl bg-fuchsia-500/10 border border-fuchsia-500/20 flex items-center justify-center text-fuchsia-400 transition-transform group-hover:scale-105">
-                    <Flame className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="text-zinc-500 text-xs font-semibold">Contributions</span>
-                    <h4 className="font-extrabold text-2xl text-white tracking-tight mt-0.5">
-                      {stats.contributionStats.totalContributions.toLocaleString()}
-                    </h4>
-                  </div>
-                </div>
-
-                {/* Followers Card */}
-                <div className="glass-card rounded-3xl p-5 flex flex-col gap-3 group relative overflow-hidden">
-                  <div className="absolute -bottom-6 -right-6 w-16 h-16 rounded-full bg-cyan-500/5 blur-lg group-hover:bg-cyan-500/10 transition-all pointer-events-none" />
-                  <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 transition-transform group-hover:scale-105">
-                    <Users className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <span className="text-zinc-500 text-xs font-semibold">Followers</span>
-                    <h4 className="font-extrabold text-2xl text-white tracking-tight mt-0.5">
-                      {stats.repositoryStats.totalStars > 100
-                        ? (stats.repositoryStats.totalStars * 0.4).toFixed(0)
-                        : '12'}
-                    </h4>
-                  </div>
-                </div>
-              </div>
-
-              {/* SECTION: CONTRIBUTION HEATMAP */}
-              <div className="glass-card rounded-3xl p-6">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-white/5 mb-5">
-                  <div>
-                    <h3 className="font-bold text-base text-white flex items-center gap-2">
-                      <CalendarDays className="w-5 h-5 text-violet-400" />
-                      Activity Calendar Heatmap
-                    </h3>
-                    <p className="text-zinc-500 text-xs mt-0.5">
-                      Visual representation of daily GitHub contributions over the past year.
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-4 text-xs font-semibold text-zinc-400">
-                    <div className="flex items-center gap-1.5 bg-black/35 px-3 py-1.5 rounded-lg border border-white/5">
-                      <Flame className="w-3.5 h-3.5 text-fuchsia-400" />
-                      <span>
-                        Current Streak:{' '}
-                        <strong>{stats.contributionStats.currentStreak} Days</strong>
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5 bg-black/35 px-3 py-1.5 rounded-lg border border-white/5">
-                      <Award className="w-3.5 h-3.5 text-violet-400" />
-                      <span>
-                        Longest Streak:{' '}
-                        <strong>{stats.contributionStats.longestStreak} Days</strong>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Heatmap Grid Container */}
-                <div className="pt-2">
-                  <div className="overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
-                    <div className="flex flex-col gap-[3px] min-w-[720px]">
-                      {/* Render months labels */}
-                      {renderMonthLabels()}
-
-                      {/* Columns grid */}
-                      <div className="flex gap-[3px] select-none">
-                        {stats.contributionStats.contributionCalendar.weeks.map((week, wIndex) => (
-                          <div key={wIndex} className="flex flex-col gap-[3px]">
-                            {week.contributionDays.map((day) => (
-                              <div
-                                key={day.date}
-                                className="w-[10px] h-[10px] rounded-[2px] transition-colors duration-200 cursor-pointer relative group"
-                                style={{
-                                  backgroundColor: getContributionColor(day.contributionCount),
-                                }}
-                              >
-                                {/* Hover Tooltip */}
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex bg-zinc-950/95 border border-white/10 rounded-xl px-2.5 py-1.5 text-[10px] whitespace-nowrap z-50 shadow-2xl pointer-events-none flex-col gap-0.5 font-sans">
-                                  <span className="font-extrabold text-zinc-100">
-                                    {day.contributionCount} contributions
-                                  </span>
-                                  <span className="text-zinc-500 font-medium">
-                                    {new Date(day.date).toLocaleDateString(undefined, {
-                                      weekday: 'short',
-                                      month: 'short',
-                                      day: 'numeric',
-                                      year: 'numeric',
-                                    })}
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
+            {/* Heatmap Grid Container */}
+            <div className="pt-2">
+              <div className="overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent">
+                <div className="flex flex-col gap-[3px] min-w-[720px]">
+                  {renderMonthLabels()}
+                  <div className="flex gap-[3px] select-none">
+                    {stats.contributionStats.contributionCalendar.weeks.map((week, wIndex) => (
+                      <div key={wIndex} className="flex flex-col gap-[3px]">
+                        {week.contributionDays.map((day) => (
+                          <div
+                            key={day.date}
+                            className="w-[10px] h-[10px] rounded-[2px] transition-colors duration-200 cursor-pointer relative group"
+                            style={{
+                              backgroundColor: getContributionColor(day.contributionCount),
+                            }}
+                          >
+                            {/* Hover Tooltip */}
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:flex bg-zinc-950/95 border border-white/10 rounded-xl px-2.5 py-1.5 text-[10px] whitespace-nowrap z-50 shadow-2xl pointer-events-none flex-col gap-0.5 font-sans">
+                              <span className="font-extrabold text-zinc-100">
+                                {day.contributionCount} contributions
+                              </span>
+                              <span className="text-zinc-500 font-medium">
+                                {new Date(day.date).toLocaleDateString(undefined, {
+                                  weekday: 'short',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric',
+                                })}
+                              </span>
+                            </div>
                           </div>
                         ))}
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Heatmap Legend */}
-                  <div className="flex items-center justify-between text-[10px] text-zinc-500 mt-2 border-t border-white/5 pt-4">
-                    <div className="flex items-center gap-1.5">
-                      <Info className="w-3.5 h-3.5 text-zinc-600" />
-                      <span>Hover over any pixel block to inspect daily contribution stats.</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span>Less</span>
-                      <div className="w-[10px] h-[10px] rounded-[2px] bg-white/[0.03]" />
-                      <div className="w-[10px] h-[10px] rounded-[2px] bg-violet-600/25" />
-                      <div className="w-[10px] h-[10px] rounded-[2px] bg-violet-600/55" />
-                      <div className="w-[10px] h-[10px] rounded-[2px] bg-violet-600/85" />
-                      <div className="w-[10px] h-[10px] rounded-[2px] bg-fuchsia-500" />
-                      <span>More</span>
-                    </div>
+                    ))}
                   </div>
                 </div>
               </div>
 
-              {/* TWO COLUMNS: Languages (Left) & Repositories Metrics (Right) */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* Language Breakdown Card (5 columns) */}
-                <div className="glass-card rounded-3xl p-6 lg:col-span-5 flex flex-col justify-between">
-                  <div>
-                    <h3 className="font-bold text-base text-white flex items-center gap-2 pb-4 border-b border-white/5">
-                      <FileCode2 className="w-5 h-5 text-violet-400" />
-                      Language Composition
-                    </h3>
-
-                    {/* Languages Stats List */}
-                    {stats.languageStats.length > 0 ? (
-                      <div className="flex flex-col gap-4 mt-5">
-                        {/* Unified Bar Chart Stack */}
-                        <div className="h-3 w-full rounded-full bg-white/5 overflow-hidden flex mb-2">
-                          {stats.languageStats.slice(0, 5).map((lang, index) => (
-                            <div
-                              key={lang.language}
-                              style={{
-                                width: `${lang.percentage}%`,
-                                backgroundColor: LANGUAGE_COLORS[lang.language] || '#8250df',
-                              }}
-                              className={`h-full ${index === 0 ? 'rounded-l-full' : ''} ${index === stats.languageStats.slice(0, 5).length - 1 ? 'rounded-r-full' : ''}`}
-                              title={`${lang.language}: ${lang.percentage}%`}
-                            />
-                          ))}
-                        </div>
-
-                        {/* Detail list rows */}
-                        {stats.languageStats.slice(0, 5).map((lang) => {
-                          const dotColor = LANGUAGE_COLORS[lang.language] || '#8250df';
-                          return (
-                            <div
-                              key={lang.language}
-                              className="flex items-center justify-between text-xs"
-                            >
-                              <div className="flex items-center gap-2">
-                                <span
-                                  className="w-2.5 h-2.5 rounded-full shrink-0"
-                                  style={{ backgroundColor: dotColor }}
-                                />
-                                <span className="font-bold text-zinc-300">{lang.language}</span>
-                                <span className="text-[10px] text-zinc-500">
-                                  ({lang.repositoryCount}{' '}
-                                  {lang.repositoryCount === 1 ? 'repo' : 'repos'})
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <span className="text-zinc-500 font-mono">
-                                  {(lang.bytes / 1024).toFixed(0)} KB
-                                </span>
-                                <span className="font-extrabold text-white min-w-[42px] text-right">
-                                  {lang.percentage}%
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <div className="py-12 flex flex-col items-center justify-center text-center gap-3 animate-in fade-in duration-300">
-                        <div className="w-12 h-12 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-center text-zinc-500 shadow-inner">
-                          <FileCode2 className="w-6 h-6 text-violet-400" />
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-xs text-white">No Languages Detected</h4>
-                          <p className="text-[10px] text-zinc-500 leading-relaxed max-w-[200px] mx-auto mt-1">
-                            We couldn&apos;t analyze any programming language bytes in your public
-                            repositories. Add some code or check your configuration.
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mt-6 border-t border-white/5 pt-4 text-center">
-                    <span className="text-[10px] text-zinc-500 leading-relaxed block">
-                      Calculated by analyzing source-code bytes across all public repositories.
-                    </span>
-                  </div>
-                </div>
-
-                {/* Repositories Metrics & Breakdown (7 columns) */}
-                <div className="glass-card rounded-3xl p-6 lg:col-span-7 flex flex-col justify-between">
-                  <div>
-                    <h3 className="font-bold text-base text-white flex items-center gap-2 pb-4 border-b border-white/5">
-                      <Folder className="w-5 h-5 text-violet-400" />
-                      Repository Statistics
-                    </h3>
-
-                    {stats.repositoryStats.total > 0 ? (
-                      <>
-                        {/* Summary Rows Grid */}
-                        <div className="grid grid-cols-3 gap-4 mt-5">
-                          <div className="bg-black/35 border border-white/5 rounded-2xl p-4 text-center">
-                            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">
-                              Total
-                            </span>
-                            <span className="text-xl font-extrabold text-white mt-1 block">
-                              {stats.repositoryStats.total}
-                            </span>
-                          </div>
-                          <div className="bg-black/35 border border-white/5 rounded-2xl p-4 text-center">
-                            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">
-                              Public
-                            </span>
-                            <span className="text-xl font-extrabold text-emerald-400 mt-1 block">
-                              {stats.repositoryStats.public}
-                            </span>
-                          </div>
-                          <div className="bg-black/35 border border-white/5 rounded-2xl p-4 text-center">
-                            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">
-                              Private
-                            </span>
-                            <span className="text-xl font-extrabold text-fuchsia-400 mt-1 block">
-                              {stats.repositoryStats.private}
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Metrics list */}
-                        <div className="flex flex-col gap-2.5 mt-5 text-xs text-zinc-400">
-                          <div className="flex justify-between border-b border-white/3 pb-1.5">
-                            <span className="flex items-center gap-1.5">
-                              <Lock className="w-3.5 h-3.5 text-zinc-500" /> Private Repository
-                              access:
-                            </span>
-                            <span className="font-semibold text-zinc-300">
-                              {stats.repositoryStats.private > 0 ? 'Enabled' : 'None Detected'}
-                            </span>
-                          </div>
-                          <div className="flex justify-between border-b border-white/3 pb-1.5">
-                            <span className="flex items-center gap-1.5">
-                              <GitFork className="w-3.5 h-3.5 text-zinc-500" /> Repository forks
-                              count:
-                            </span>
-                            <span className="font-semibold text-zinc-300">
-                              {stats.repositoryStats.forks}
-                            </span>
-                          </div>
-                          <div className="flex justify-between border-b border-white/3 pb-1.5">
-                            <span className="flex items-center gap-1.5">
-                              <BookOpen className="w-3.5 h-3.5 text-zinc-500" /> Original templates:
-                            </span>
-                            <span className="font-semibold text-zinc-300">
-                              {stats.repositoryStats.original}
-                            </span>
-                          </div>
-                          <div className="flex justify-between border-b border-white/3 pb-1.5">
-                            <span className="flex items-center gap-1.5">
-                              <GitPullRequest className="w-3.5 h-3.5 text-zinc-500" /> Merged PR
-                              count:
-                            </span>
-                            <span className="font-semibold text-zinc-300">
-                              {stats.pullRequestStats.mergedPullRequests}
-                            </span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="flex items-center gap-1.5">
-                              <AlertTriangle className="w-3.5 h-3.5 text-zinc-500" /> Average Issue
-                              Close Time:
-                            </span>
-                            <span className="font-semibold text-zinc-300">
-                              {stats.issueStats.averageCloseTimeFormatted}
-                            </span>
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      <div className="py-12 flex flex-col items-center justify-center text-center gap-3 animate-in fade-in duration-300">
-                        <div className="w-12 h-12 rounded-2xl bg-white/[0.02] border border-white/5 flex items-center justify-center text-zinc-500 shadow-inner">
-                          <Folder className="w-6 h-6 text-violet-400" />
-                        </div>
-                        <div>
-                          <h4 className="font-bold text-xs text-white">No Repositories Found</h4>
-                          <p className="text-[10px] text-zinc-500 leading-relaxed max-w-[240px] mx-auto mt-1">
-                            No public repositories were detected for this profile. Access token
-                            scopes may restrict private repository stats.
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mt-6 border-t border-white/5 pt-4 text-left flex justify-between items-center">
-                    <span className="text-[10px] text-zinc-500">
-                      Repository stats mapping completed.
-                    </span>
-                    <a
-                      href={`https://github.com/${user?.username}?tab=repositories`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[10px] text-violet-400 hover:text-violet-300 font-bold flex items-center gap-0.5 hover:underline"
-                    >
-                      <span>View all repositories</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  </div>
-                </div>
-              </div>
-
-              {/* SECTION: RANKINGS HIGHLIGHTS */}
-              <div className="glass-card rounded-3xl p-6">
-                <h3 className="font-bold text-base text-white flex items-center gap-2 pb-4 border-b border-white/5 mb-5">
-                  <Award className="w-5 h-5 text-violet-400" />
-                  Repository Rankings Highlights
-                </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Most Starred Repo */}
-                  {stats.repositoryRankings.mostStarred ? (
-                    <div className="bg-black/35 border border-white/5 rounded-2xl p-5 flex flex-col justify-between group">
-                      <div>
-                        <div className="flex items-center gap-1.5 text-xs text-amber-400 font-bold uppercase tracking-wider mb-2">
-                          <Star className="w-3.5 h-3.5 fill-amber-400/10" />
-                          <span>Most Starred</span>
-                        </div>
-                        <h4 className="font-bold text-sm text-white group-hover:text-violet-400 transition-colors truncate">
-                          {stats.repositoryRankings.mostStarred.name}
-                        </h4>
-                        <p className="text-zinc-500 text-xs mt-2 line-clamp-3 leading-relaxed">
-                          {stats.repositoryRankings.mostStarred.description ||
-                            'No description provided.'}
-                        </p>
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-zinc-400 mt-4 border-t border-white/5 pt-3">
-                        <div className="flex items-center gap-3">
-                          <span className="flex items-center gap-1">
-                            <Star className="w-3 h-3 text-amber-500" />{' '}
-                            {stats.repositoryRankings.mostStarred.stars}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <GitFork className="w-3 h-3 text-violet-500" />{' '}
-                            {stats.repositoryRankings.mostStarred.forks}
-                          </span>
-                        </div>
-                        <a
-                          href={stats.repositoryRankings.mostStarred.htmlUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-violet-400 hover:text-violet-300 font-bold flex items-center gap-0.5"
-                        >
-                          <span>GitHub</span>
-                          <ExternalLink className="w-2.5 h-2.5" />
-                        </a>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="bg-black/35 border border-white/5 rounded-2xl p-6 flex flex-col items-center justify-center text-center gap-2 min-h-[140px] animate-in fade-in duration-300">
-                      <Star className="w-5 h-5 text-zinc-600" />
-                      <div>
-                        <h4 className="font-bold text-xs text-zinc-400">No Starred Repos</h4>
-                        <p className="text-[9px] text-zinc-500 leading-relaxed max-w-[140px] mt-0.5">
-                          We couldn&apos;t detect starred repositories.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Most Forked Repo */}
-                  {stats.repositoryRankings.mostForked ? (
-                    <div className="bg-black/35 border border-white/5 rounded-2xl p-5 flex flex-col justify-between group">
-                      <div>
-                        <div className="flex items-center gap-1.5 text-xs text-violet-400 font-bold uppercase tracking-wider mb-2">
-                          <GitFork className="w-3.5 h-3.5" />
-                          <span>Most Forked</span>
-                        </div>
-                        <h4 className="font-bold text-sm text-white group-hover:text-violet-400 transition-colors truncate">
-                          {stats.repositoryRankings.mostForked.name}
-                        </h4>
-                        <p className="text-zinc-500 text-xs mt-2 line-clamp-3 leading-relaxed">
-                          {stats.repositoryRankings.mostForked.description ||
-                            'No description provided.'}
-                        </p>
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-zinc-400 mt-4 border-t border-white/5 pt-3">
-                        <div className="flex items-center gap-3">
-                          <span className="flex items-center gap-1">
-                            <Star className="w-3 h-3 text-amber-500" />{' '}
-                            {stats.repositoryRankings.mostForked.stars}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <GitFork className="w-3 h-3 text-violet-500" />{' '}
-                            {stats.repositoryRankings.mostForked.forks}
-                          </span>
-                        </div>
-                        <a
-                          href={stats.repositoryRankings.mostForked.htmlUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-violet-400 hover:text-violet-300 font-bold flex items-center gap-0.5"
-                        >
-                          <span>GitHub</span>
-                          <ExternalLink className="w-2.5 h-2.5" />
-                        </a>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="bg-black/35 border border-white/5 rounded-2xl p-6 flex flex-col items-center justify-center text-center gap-2 min-h-[140px] animate-in fade-in duration-300">
-                      <GitFork className="w-5 h-5 text-zinc-600" />
-                      <div>
-                        <h4 className="font-bold text-xs text-zinc-400">No Forked Repos</h4>
-                        <p className="text-[9px] text-zinc-500 leading-relaxed max-w-[140px] mt-0.5">
-                          Forked repositories will show up here.
-                        </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Recently Updated Repo */}
-                  {stats.repositoryRankings.mostRecentlyUpdated ? (
-                    <div className="bg-black/35 border border-white/5 rounded-2xl p-5 flex flex-col justify-between group">
-                      <div>
-                        <div className="flex items-center gap-1.5 text-xs text-cyan-400 font-bold uppercase tracking-wider mb-2">
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>Recently Updated</span>
-                        </div>
-                        <h4 className="font-bold text-sm text-white group-hover:text-violet-400 transition-colors truncate">
-                          {stats.repositoryRankings.mostRecentlyUpdated.name}
-                        </h4>
-                        <p className="text-zinc-500 text-xs mt-2 line-clamp-3 leading-relaxed">
-                          {stats.repositoryRankings.mostRecentlyUpdated.description ||
-                            'No description provided.'}
-                        </p>
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-zinc-400 mt-4 border-t border-white/5 pt-3">
-                        <div className="flex items-center gap-1 truncate max-w-[130px]">
-                          <span className="text-[10px] text-zinc-500 font-mono">
-                            {new Date(
-                              stats.repositoryRankings.mostRecentlyUpdated.updatedAt,
-                            ).toLocaleDateString(undefined, {
-                              month: 'short',
-                              day: 'numeric',
-                            })}
-                          </span>
-                        </div>
-                        <a
-                          href={stats.repositoryRankings.mostRecentlyUpdated.htmlUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-violet-400 hover:text-violet-300 font-bold flex items-center gap-0.5 shrink-0"
-                        >
-                          <span>GitHub</span>
-                          <ExternalLink className="w-2.5 h-2.5" />
-                        </a>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="bg-black/35 border border-white/5 rounded-2xl p-6 flex flex-col items-center justify-center text-center gap-2 min-h-[140px] animate-in fade-in duration-300">
-                      <Eye className="w-5 h-5 text-zinc-600" />
-                      <div>
-                        <h4 className="font-bold text-xs text-zinc-400">No Active Repos</h4>
-                        <p className="text-[9px] text-zinc-500 leading-relaxed max-w-[140px] mt-0.5">
-                          Active public repositories will be listed here.
-                        </p>
-                      </div>
-                    </div>
-                  )}
+              {/* Heatmap Legend */}
+              <div className="flex items-center justify-between text-[10px] text-zinc-500 mt-2 border-t border-white/5 pt-4">
+                <Link
+                  href="/dashboard/activity"
+                  className="text-violet-400 hover:text-violet-300 font-bold flex items-center gap-1 hover:underline"
+                >
+                  <span>View detailed activity stats</span>
+                  <ArrowRight className="w-3 h-3" />
+                </Link>
+                <div className="flex items-center gap-1">
+                  <span>Less</span>
+                  <div className="w-[10px] h-[10px] rounded-[2px] bg-white/[0.03]" />
+                  <div className="w-[10px] h-[10px] rounded-[2px] bg-violet-600/25" />
+                  <div className="w-[10px] h-[10px] rounded-[2px] bg-violet-600/55" />
+                  <div className="w-[10px] h-[10px] rounded-[2px] bg-violet-600/85" />
+                  <div className="w-[10px] h-[10px] rounded-[2px] bg-fuchsia-500" />
+                  <span>More</span>
                 </div>
               </div>
             </div>
-          )}
-        </section>
-      </div>
+          </section>
+
+          {/* D. TWO COLUMNS: Languages Breakdown & Repositories Breakdown */}
+          <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Language Breakdown Card (5 columns) */}
+            <div className="glass-card rounded-3xl p-6 sm:p-8 lg:col-span-5 flex flex-col justify-between border border-white/5">
+              <div>
+                <div className="flex items-center justify-between pb-4 border-b border-white/5">
+                  <h3 className="font-bold text-base text-white flex items-center gap-2">
+                    <FileCode2 className="w-5 h-5 text-violet-400" />
+                    Top Languages
+                  </h3>
+                  <span className="text-[10px] text-zinc-500 font-mono">By Source Code</span>
+                </div>
+
+                {stats.languageStats.length > 0 ? (
+                  <div className="flex flex-col gap-4 mt-5">
+                    {/* Stacked Percentage Bar */}
+                    <div className="h-3 w-full rounded-full bg-white/5 overflow-hidden flex mb-2">
+                      {stats.languageStats.slice(0, 5).map((lang, index) => (
+                        <div
+                          key={lang.language}
+                          style={{
+                            width: `${lang.percentage}%`,
+                            backgroundColor: LANGUAGE_COLORS[lang.language] || '#8250df',
+                          }}
+                          className={`h-full ${index === 0 ? 'rounded-l-full' : ''} ${
+                            index === stats.languageStats.slice(0, 5).length - 1
+                              ? 'rounded-r-full'
+                              : ''
+                          }`}
+                          title={`${lang.language}: ${lang.percentage}%`}
+                        />
+                      ))}
+                    </div>
+
+                    {/* Language Rows */}
+                    {stats.languageStats.slice(0, 5).map((lang) => {
+                      const dotColor = LANGUAGE_COLORS[lang.language] || '#8250df';
+                      return (
+                        <div key={lang.language} className="flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="w-2.5 h-2.5 rounded-full shrink-0"
+                              style={{ backgroundColor: dotColor }}
+                            />
+                            <span className="font-bold text-zinc-200">{lang.language}</span>
+                            <span className="text-[10px] text-zinc-500">
+                              ({lang.repositoryCount}{' '}
+                              {lang.repositoryCount === 1 ? 'repo' : 'repos'})
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-zinc-500 font-mono text-[11px]">
+                              {(lang.bytes / 1024).toFixed(0)} KB
+                            </span>
+                            <span className="font-extrabold text-white min-w-[40px] text-right">
+                              {lang.percentage}%
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="py-10 text-center text-zinc-500 text-xs">
+                    No language data detected.
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-6 border-t border-white/5 pt-4 flex items-center justify-between">
+                <span className="text-[10px] text-zinc-500">Public repository bytes</span>
+                <Link
+                  href="/dashboard/cards"
+                  className="text-[10px] text-violet-400 hover:text-violet-300 font-bold hover:underline"
+                >
+                  Generate card →
+                </Link>
+              </div>
+            </div>
+
+            {/* Repositories Metrics & Breakdown (7 columns) */}
+            <div className="glass-card rounded-3xl p-6 sm:p-8 lg:col-span-7 flex flex-col justify-between border border-white/5">
+              <div>
+                <div className="flex items-center justify-between pb-4 border-b border-white/5">
+                  <h3 className="font-bold text-base text-white flex items-center gap-2">
+                    <Folder className="w-5 h-5 text-violet-400" />
+                    Repository Breakdown
+                  </h3>
+                  <a
+                    href={`https://github.com/${user?.username}?tab=repositories`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-violet-400 hover:text-violet-300 font-bold flex items-center gap-1 hover:underline"
+                  >
+                    <span>GitHub Profile</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </div>
+
+                {/* Summary Pills Grid */}
+                <div className="grid grid-cols-3 gap-3 sm:gap-4 mt-5">
+                  <div className="bg-black/40 border border-white/5 rounded-2xl p-4 text-center">
+                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">
+                      Total
+                    </span>
+                    <span className="text-xl font-extrabold text-white mt-1 block">
+                      {stats.repositoryStats.total}
+                    </span>
+                  </div>
+                  <div className="bg-black/40 border border-white/5 rounded-2xl p-4 text-center">
+                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">
+                      Public
+                    </span>
+                    <span className="text-xl font-extrabold text-emerald-400 mt-1 block">
+                      {stats.repositoryStats.public}
+                    </span>
+                  </div>
+                  <div className="bg-black/40 border border-white/5 rounded-2xl p-4 text-center">
+                    <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider block">
+                      Private
+                    </span>
+                    <span className="text-xl font-extrabold text-fuchsia-400 mt-1 block">
+                      {stats.repositoryStats.private}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Metrics list */}
+                <div className="flex flex-col gap-2.5 mt-5 text-xs text-zinc-400">
+                  <div className="flex justify-between border-b border-white/5 pb-2">
+                    <span className="flex items-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5 text-zinc-500" /> Private Repository Access:
+                    </span>
+                    <span className="font-semibold text-zinc-300">
+                      {stats.repositoryStats.private > 0 ? 'Enabled' : hasGithubToken ? 'Configured' : 'Public Only'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-b border-white/5 pb-2">
+                    <span className="flex items-center gap-1.5">
+                      <GitFork className="w-3.5 h-3.5 text-zinc-500" /> Total Forks:
+                    </span>
+                    <span className="font-semibold text-zinc-300">
+                      {stats.repositoryStats.forks}
+                    </span>
+                  </div>
+                  <div className="flex justify-between border-b border-white/5 pb-2">
+                    <span className="flex items-center gap-1.5">
+                      <BookOpen className="w-3.5 h-3.5 text-zinc-500" /> Original Repositories:
+                    </span>
+                    <span className="font-semibold text-zinc-300">
+                      {stats.repositoryStats.original}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <GitPullRequest className="w-3.5 h-3.5 text-zinc-500" /> Merged Pull Requests:
+                    </span>
+                    <span className="font-semibold text-zinc-300">
+                      {stats.pullRequestStats.mergedPullRequests}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 border-t border-white/5 pt-4 flex items-center justify-between">
+                <span className="text-[10px] text-zinc-500">Repository analysis completed</span>
+                <Link
+                  href="/dashboard/repositories"
+                  className="text-[10px] text-violet-400 hover:text-violet-300 font-bold hover:underline"
+                >
+                  View all repo insights →
+                </Link>
+              </div>
+            </div>
+          </section>
+
+          {/* E. TOP REPOSITORIES HIGHLIGHTS */}
+          <section className="glass-card rounded-3xl p-6 sm:p-8 border border-white/5">
+            <div className="flex items-center justify-between pb-5 border-b border-white/5 mb-5">
+              <div>
+                <h3 className="font-bold text-base text-white flex items-center gap-2">
+                  <Award className="w-5 h-5 text-violet-400" />
+                  Highlighted Repositories
+                </h3>
+                <p className="text-zinc-500 text-xs mt-0.5">
+                  Featured repositories based on stars, forks, and recent commit updates.
+                </p>
+              </div>
+              <Link
+                href="/dashboard/repositories"
+                className="text-xs text-violet-400 hover:text-violet-300 font-bold hover:underline flex items-center gap-1"
+              >
+                <span>All Repositories</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+              {/* Most Starred Repo */}
+              {stats.repositoryRankings.mostStarred ? (
+                <div className="bg-black/40 border border-white/5 rounded-2xl p-5 flex flex-col justify-between group hover:border-violet-500/30 transition-all">
+                  <div>
+                    <div className="flex items-center gap-1.5 text-xs text-amber-400 font-bold uppercase tracking-wider mb-2">
+                      <Star className="w-3.5 h-3.5 fill-amber-400/10" />
+                      <span>Most Starred</span>
+                    </div>
+                    <h4 className="font-bold text-sm text-white group-hover:text-violet-400 transition-colors truncate">
+                      {stats.repositoryRankings.mostStarred.name}
+                    </h4>
+                    <p className="text-zinc-500 text-xs mt-2 line-clamp-2 leading-relaxed">
+                      {stats.repositoryRankings.mostStarred.description || 'No description provided.'}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-zinc-400 mt-4 border-t border-white/5 pt-3">
+                    <div className="flex items-center gap-3">
+                      <span className="flex items-center gap-1 text-amber-400 font-semibold">
+                        <Star className="w-3 h-3 fill-amber-400/20" />{' '}
+                        {stats.repositoryRankings.mostStarred.stars}
+                      </span>
+                      <span className="flex items-center gap-1 text-zinc-400">
+                        <GitFork className="w-3 h-3" />{' '}
+                        {stats.repositoryRankings.mostStarred.forks}
+                      </span>
+                    </div>
+                    <a
+                      href={stats.repositoryRankings.mostStarred.htmlUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-violet-400 hover:text-violet-300 font-bold flex items-center gap-0.5"
+                    >
+                      <span>GitHub</span>
+                      <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-black/40 border border-white/5 rounded-2xl p-6 flex flex-col items-center justify-center text-center gap-2 min-h-[140px]">
+                  <Star className="w-5 h-5 text-zinc-600" />
+                  <span className="text-xs text-zinc-400">No starred repositories detected</span>
+                </div>
+              )}
+
+              {/* Most Forked Repo */}
+              {stats.repositoryRankings.mostForked ? (
+                <div className="bg-black/40 border border-white/5 rounded-2xl p-5 flex flex-col justify-between group hover:border-violet-500/30 transition-all">
+                  <div>
+                    <div className="flex items-center gap-1.5 text-xs text-violet-400 font-bold uppercase tracking-wider mb-2">
+                      <GitFork className="w-3.5 h-3.5" />
+                      <span>Most Forked</span>
+                    </div>
+                    <h4 className="font-bold text-sm text-white group-hover:text-violet-400 transition-colors truncate">
+                      {stats.repositoryRankings.mostForked.name}
+                    </h4>
+                    <p className="text-zinc-500 text-xs mt-2 line-clamp-2 leading-relaxed">
+                      {stats.repositoryRankings.mostForked.description || 'No description provided.'}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-zinc-400 mt-4 border-t border-white/5 pt-3">
+                    <div className="flex items-center gap-3">
+                      <span className="flex items-center gap-1 text-amber-400 font-semibold">
+                        <Star className="w-3 h-3" />{' '}
+                        {stats.repositoryRankings.mostForked.stars}
+                      </span>
+                      <span className="flex items-center gap-1 text-violet-400 font-semibold">
+                        <GitFork className="w-3 h-3" />{' '}
+                        {stats.repositoryRankings.mostForked.forks}
+                      </span>
+                    </div>
+                    <a
+                      href={stats.repositoryRankings.mostForked.htmlUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-violet-400 hover:text-violet-300 font-bold flex items-center gap-0.5"
+                    >
+                      <span>GitHub</span>
+                      <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-black/40 border border-white/5 rounded-2xl p-6 flex flex-col items-center justify-center text-center gap-2 min-h-[140px]">
+                  <GitFork className="w-5 h-5 text-zinc-600" />
+                  <span className="text-xs text-zinc-400">No forked repositories detected</span>
+                </div>
+              )}
+
+              {/* Recently Updated Repo */}
+              {stats.repositoryRankings.mostRecentlyUpdated ? (
+                <div className="bg-black/40 border border-white/5 rounded-2xl p-5 flex flex-col justify-between group hover:border-violet-500/30 transition-all">
+                  <div>
+                    <div className="flex items-center gap-1.5 text-xs text-cyan-400 font-bold uppercase tracking-wider mb-2">
+                      <Eye className="w-3.5 h-3.5" />
+                      <span>Recently Updated</span>
+                    </div>
+                    <h4 className="font-bold text-sm text-white group-hover:text-violet-400 transition-colors truncate">
+                      {stats.repositoryRankings.mostRecentlyUpdated.name}
+                    </h4>
+                    <p className="text-zinc-500 text-xs mt-2 line-clamp-2 leading-relaxed">
+                      {stats.repositoryRankings.mostRecentlyUpdated.description || 'No description provided.'}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-zinc-400 mt-4 border-t border-white/5 pt-3">
+                    <span className="text-[11px] text-zinc-500 font-mono">
+                      {new Date(
+                        stats.repositoryRankings.mostRecentlyUpdated.updatedAt,
+                      ).toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </span>
+                    <a
+                      href={stats.repositoryRankings.mostRecentlyUpdated.htmlUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-violet-400 hover:text-violet-300 font-bold flex items-center gap-0.5"
+                    >
+                      <span>GitHub</span>
+                      <ExternalLink className="w-2.5 h-2.5" />
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-black/40 border border-white/5 rounded-2xl p-6 flex flex-col items-center justify-center text-center gap-2 min-h-[140px]">
+                  <Eye className="w-5 h-5 text-zinc-600" />
+                  <span className="text-xs text-zinc-400">No recent repositories</span>
+                </div>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
     </div>
   );
 }
+

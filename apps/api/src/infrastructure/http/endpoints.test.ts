@@ -554,6 +554,17 @@ describe('API Endpoints', () => {
       for (const [, opts] of graphqlCalls) {
         expect(opts?.headers?.Authorization).toBe('Bearer mock-access-token');
       }
+
+      // 4. Logout clears the session cookie
+      const logoutResponse = await request(app)
+        .post('/api/v1/auth/logout')
+        .set('Cookie', sessionCookie as string);
+
+      expect(logoutResponse.status).toBe(200);
+      expect(logoutResponse.body.success).toBe(true);
+      const clearCookie = logoutResponse.headers['set-cookie'];
+      expect(clearCookie).toBeDefined();
+      expect(clearCookie?.some((cookie) => cookie.includes('gitprofilestats_session=;'))).toBe(true);
     });
   });
 });

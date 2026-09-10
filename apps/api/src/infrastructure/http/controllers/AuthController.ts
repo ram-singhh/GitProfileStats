@@ -119,4 +119,15 @@ export class AuthController {
       res.redirect(`${env.WEB_BASE_URL}/login/callback?error=auth_failed`);
     }
   }
+
+  public logout = (req: Request, res: Response): void => {
+    const isSecure = env.NODE_ENV === 'production' || env.NODE_ENV === 'test';
+    res.clearCookie(SESSION_COOKIE_NAME, {
+      httpOnly: true,
+      secure: isSecure,
+      sameSite: isSecure ? 'none' : 'lax',
+      path: '/',
+    });
+    res.status(200).json({ success: true, message: 'Logged out successfully' });
+  };
 }
