@@ -53,6 +53,18 @@ export class InMemoryResponseCache implements IResponseCache {
     });
   }
 
+  public async delete(key: string): Promise<void> {
+    this.cache.delete(key);
+  }
+
+  public async deleteByPattern(pattern: string): Promise<void> {
+    for (const key of Array.from(this.cache.keys())) {
+      if (key.includes(pattern)) {
+        this.cache.delete(key);
+      }
+    }
+  }
+
   public clear(): void {
     this.cache.clear();
   }

@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { logger } from '../../../config/logger.js';
 import type { IResponseCache } from '../../cache/IResponseCache.js';
-import { cacheMiddleware, clearResponseCache } from './cacheMiddleware.js';
+import { cacheMiddleware, clearResponseCache, invalidateUserCache } from './cacheMiddleware.js';
 
 const makeResponse = (): Response =>
   ({
@@ -139,5 +139,39 @@ describe('cacheMiddleware', () => {
     expect(warnSpy).toHaveBeenCalledWith(
       'Response cache entry was malformed; continuing without cache',
     );
+  });
+
+  describe('invalidateUserCache', () => {
+    it('deletes cached entries for the specified user by pattern', async () => {
+      const cache: IResponseCache = {
+        get: vi.fn(),
+        set: vi.fn(),
+        delete: vi.fn(),
+        deleteByPattern: vi.fn().mockResolvedValue(undefined),
+        clear: vi.fn(),
+      };
+
+      await invalidateUserCache('target-user-id', cache);
+
+      expect(cache.deleteByPattern).toHaveBeenCalledWith('user=target-user-id');
+    });
+
+    it('handles cache deletion failure gracefully without throwing', async () => {
+      const cache: IResponseCache = {
+        get: vi.fn(),
+        set: vi.fn(),
+        delete: vi.fn(),
+        deleteByPattern: vi.fn().mockRejectedValue(new Error('Redis connection lost')),
+        clear: vi.fn(),
+      };
+      const warnSpy = vi.spyOn(logger, 'warn').mockImplementation(() => undefined);
+
+      await expect(invalidateUserCache('target-user-id', cache)).resolves.toBeUndefined();
+
+      expect(warnSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ operation: 'delete', errorType: 'Error' }),
+        'Response cache delete failed; continuing without cache',
+      );
+    });
   });
 });

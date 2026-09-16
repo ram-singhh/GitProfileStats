@@ -34,11 +34,25 @@ const isHttpCacheEntry = (value: unknown): value is HttpCacheEntry => {
   );
 };
 
-const logCacheFailure = (operation: 'read' | 'write', error: unknown): void => {
+const logCacheFailure = (operation: 'read' | 'write' | 'delete', error: unknown): void => {
   logger.warn(
     { operation, errorType: error instanceof Error ? error.name : typeof error },
     `Response cache ${operation} failed; continuing without cache`,
   );
+};
+
+/**
+ * Invalidate cached HTTP responses for a specific user.
+ */
+export const invalidateUserCache = async (
+  userId: string,
+  cache: IResponseCache = responseCache,
+): Promise<void> => {
+  try {
+    await cache.deleteByPattern(`user=${userId}`);
+  } catch (error: unknown) {
+    logCacheFailure('delete', error);
+  }
 };
 
 export const cacheMiddleware = (ttlSeconds = 300, cache: IResponseCache = responseCache) => {

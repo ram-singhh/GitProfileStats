@@ -566,5 +566,109 @@ describe('API Endpoints', () => {
       expect(clearCookie).toBeDefined();
       expect(clearCookie?.some((cookie) => cookie.includes('gitprofilestats_session=;'))).toBe(true);
     });
+
+    describe('PAT Statistics Cache Invalidation', () => {
+      it('should invalidate cache when PAT is saved, cleared, and preserve unrelated users cache', async () => {
+        // 1. Authenticate User 1 (demo)
+        const callback1 = await request(app)
+          .get('/api/v1/auth/github/callback')
+          .query({ code: 'oauth-code-user-1' });
+        const cookie1 = callback1.headers['set-cookie']
+          ?.find((c) => c.startsWith('gitprofilestats_session='))
+          ?.split(';')[0] as string;
+
+        // 2. Fetch statistics for User 1 (populates cache)
+        mockFetch.mockClear();
+        const statsRes1 = await request(app)
+          .get('/api/statistics?username=demo')
+          .set('Cookie', cookie1);
+        expect(statsRes1.status).toBe(200);
+        const callsAfterFirstFetch = mockFetch.mock.calls.length;
+        expect(callsAfterFirstFetch).toBeGreaterThan(0);
+
+        // 3. Verify existing statistics caching still works (second request hits HTTP cache)
+        mockFetch.mockClear();
+        const statsRes1Cached = await request(app)
+          .get('/api/statistics?username=demo')
+          .set('Cookie', cookie1);
+        expect(statsRes1Cached.status).toBe(200);
+        expect(mockFetch.mock.calls.length).toBe(0); // Served from cache
+
+        // 4. Create and cache a second unrelated user
+        // We simulate another user in repository
+        const userRepository = (await import('../../config/container.js')).container.resolve<
+          import('../../domain/interfaces/IUserRepository.js').IUserRepository
+        >('IUserRepository');
+        const { User } = await import('../../domain/entities/User.js');
+        const user2 = User.create({
+          id: 'user-2-id',
+          githubId: '9999999',
+          username: 'user2',
+          email: 'user2@example.com',
+          avatarUrl: 'https://avatars.githubusercontent.com/u/9999999?v=4',
+          tier: 'FREE',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+        await userRepository.save(user2);
+        const { SessionService } = await import('../../application/services/SessionService.js');
+        const sessionService = (await import('../../config/container.js')).container.resolve(SessionService);
+        const session2 = sessionService.createSession(user2.id);
+        const cookie2 = `gitprofilestats_session=${session2}`;
+
+        // Populate User 2 cache
+        mockFetch.mockClear();
+        const statsRes2 = await request(app)
+          .get('/api/statistics?username=user2')
+          .set('Cookie', cookie2);
+        expect(statsRes2.status).toBe(200);
+        expect(mockFetch.mock.calls.length).toBeGreaterThan(0);
+
+        // Verify User 2 is cached
+        mockFetch.mockClear();
+        const statsRes2Cached = await request(app)
+          .get('/api/statistics?username=user2')
+          .set('Cookie', cookie2);
+        expect(statsRes2Cached.status).toBe(200);
+        expect(mockFetch.mock.calls.length).toBe(0); // Served from cache
+
+        // 5. User 1 saves a new PAT -> statistics cache for User 1 must be invalidated immediately
+        const savePatRes = await request(app)
+          .put('/api/v1/users/github-token')
+          .set('Cookie', cookie1)
+          .send({ token: 'ghp_new_pat_for_user_1' });
+        expect(savePatRes.status).toBe(200);
+
+        // 6. Requesting User 1 statistics must now execute fresh GitHub API request (cache miss)
+        mockFetch.mockClear();
+        const statsRes1AfterSave = await request(app)
+          .get('/api/statistics?username=demo')
+          .set('Cookie', cookie1);
+        expect(statsRes1AfterSave.status).toBe(200);
+        expect(mockFetch.mock.calls.length).toBeGreaterThan(0); // Fresh fetch executed!
+
+        // 7. Verify unrelated User 2's cache is STILL INTACT (cache hit, 0 fetch calls)
+        mockFetch.mockClear();
+        const statsRes2AfterUser1Save = await request(app)
+          .get('/api/statistics?username=user2')
+          .set('Cookie', cookie2);
+        expect(statsRes2AfterUser1Save.status).toBe(200);
+        expect(mockFetch.mock.calls.length).toBe(0); // Unrelated user cache was NOT invalidated!
+
+        // 8. User 1 clears their PAT -> statistics cache for User 1 must be invalidated again
+        const clearPatRes = await request(app)
+          .delete('/api/v1/users/github-token')
+          .set('Cookie', cookie1);
+        expect(clearPatRes.status).toBe(200);
+
+        // 9. Requesting User 1 statistics must execute fresh fetch again
+        mockFetch.mockClear();
+        const statsRes1AfterClear = await request(app)
+          .get('/api/statistics?username=demo')
+          .set('Cookie', cookie1);
+        expect(statsRes1AfterClear.status).toBe(200);
+        expect(mockFetch.mock.calls.length).toBeGreaterThan(0); // Fresh fetch executed!
+      });
+    });
   });
 });

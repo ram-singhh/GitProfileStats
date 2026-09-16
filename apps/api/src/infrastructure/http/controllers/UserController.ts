@@ -5,6 +5,8 @@ import { UpdateUserSettingsUseCase } from '../../../application/use-cases/user/U
 import type { IUserRepository } from '../../../domain/interfaces/IUserRepository.js';
 import { UserNotFoundError } from '../../../domain/errors/DomainError.js';
 import type { IUserSettings } from '../../../domain/entities/User.js';
+import type { IResponseCache } from '../../cache/IResponseCache.js';
+import { invalidateUserCache } from '../middleware/cacheMiddleware.js';
 
 import type { IAuthenticatedRequest } from '../middleware/authGuard.js';
 
@@ -17,6 +19,8 @@ export class UserController {
     private readonly updateUserSettingsUseCase: UpdateUserSettingsUseCase,
     @inject('IUserRepository')
     private readonly userRepository: IUserRepository,
+    @inject('ResponseCache')
+    private readonly responseCache?: IResponseCache,
   ) {}
 
   public getUserProfile = (req: Request, res: Response, next: NextFunction): void => {
@@ -66,12 +70,13 @@ export class UserController {
 
     void this.userRepository
       .findById(userId)
-      .then((user) => {
+      .then(async (user) => {
         if (!user) {
           throw new UserNotFoundError(userId);
         }
         user.updateGithubAccessToken(token.trim());
-        return this.userRepository.save(user);
+        await this.userRepository.save(user);
+        await invalidateUserCache(userId, this.responseCache);
       })
       .then(() => {
         res.status(200).json({ success: true, data: { hasGithubToken: true } });
@@ -88,12 +93,13 @@ export class UserController {
 
     void this.userRepository
       .findById(userId)
-      .then((user) => {
+      .then(async (user) => {
         if (!user) {
           throw new UserNotFoundError(userId);
         }
         user.clearGithubAccessToken();
-        return this.userRepository.save(user);
+        await this.userRepository.save(user);
+        await invalidateUserCache(userId, this.responseCache);
       })
       .then(() => {
         res.status(200).json({ success: true, data: { hasGithubToken: false } });

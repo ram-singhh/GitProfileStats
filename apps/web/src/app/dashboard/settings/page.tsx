@@ -590,7 +590,7 @@ export default function SettingsPage() {
           )}
 
           <p className="text-zinc-400 text-xs leading-relaxed max-w-2xl">
-            Your normal GitHub account is already authenticated. Adding a Personal Access Token (PAT) is <strong className="text-zinc-200">optional</strong>, and enables higher API rate limits (5,000 req/hr) and access to private repository metrics.
+            Your normal GitHub account is already authenticated. Adding a Personal Access Token (PAT) is <strong className="text-zinc-200">optional</strong>, and enables higher API rate limits (5,000 req/hr) and access to private repository metrics. Note: Private repository access requires appropriate GitHub repository permissions (e.g. <code className="text-violet-400 font-mono text-[11px]">repo</code> scope for classic tokens or repository read permissions for fine-grained tokens).
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">

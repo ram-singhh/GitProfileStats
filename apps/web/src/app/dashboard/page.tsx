@@ -239,7 +239,7 @@ export default function DashboardPage() {
             <p className="text-zinc-400 text-xs leading-relaxed">
               Your standard GitHub login is already connected. A Personal Access Token (PAT) is{' '}
               <strong className="text-zinc-200">completely optional</strong>, useful if you want to include
-              private repositories or bypass public API rate limits.
+              private repositories or bypass public API rate limits. Note: Private repository access requires appropriate GitHub repository permissions (e.g. <code className="text-violet-400 font-mono text-[11px]">repo</code> scope for classic tokens or repository read permissions for fine-grained tokens).
             </p>
 
             <div className="flex flex-col gap-2">

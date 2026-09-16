@@ -14,6 +14,17 @@ export class UpstashResponseCache implements IResponseCache {
     await this.redis.set(key, value, { ex: Math.max(1, Math.ceil(ttlMs / 1000)) });
   }
 
+  public async delete(key: string): Promise<void> {
+    await this.redis.del(key);
+  }
+
+  public async deleteByPattern(pattern: string): Promise<void> {
+    const keys = await this.redis.keys(`*${pattern}*`);
+    if (keys && keys.length > 0) {
+      await this.redis.del(...keys);
+    }
+  }
+
   public clear(): void {
     // Redis is shared across processes; never flush a shared database from a service helper.
   }
