@@ -16,7 +16,7 @@ const envSchema = z
     LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
     GITHUB_CLIENT_ID: z.string(),
     GITHUB_CLIENT_SECRET: z.string(),
-    GITHUB_CALLBACK_URL: z.string(),
+    GITHUB_CALLBACK_URL: z.string().default('http://localhost:3000/api/v1/auth/github/callback'),
     GITHUB_TOKEN: z.string(),
     SESSION_SECRET: z.string().min(32),
     DATABASE_URL: z.string().min(1).optional(),

@@ -164,7 +164,7 @@ export default function CardPreviewPage() {
   const [readmeLayout, setReadmeLayout] = useState<'vertical' | 'centered' | 'grid'>('vertical');
   const [customApiHost, setCustomApiHost] = useState(() => {
     if (typeof window !== 'undefined') {
-      return env.NEXT_PUBLIC_API_URL;
+      return env.NEXT_PUBLIC_API_URL || window.location.origin;
     }
     return '';
   });
@@ -479,7 +479,10 @@ export default function CardPreviewPage() {
 
   // Generate GitHub Profile README Markdown
   const generateReadmeMarkdown = () => {
-    const host = customApiHost || env.NEXT_PUBLIC_API_URL;
+    const host =
+      customApiHost ||
+      env.NEXT_PUBLIC_API_URL ||
+      (typeof window !== 'undefined' ? window.location.origin : '');
 
     const getCardUrl = (type: CardType) => {
       const params = new URLSearchParams();
