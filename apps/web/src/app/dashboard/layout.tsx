@@ -376,7 +376,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     className="fixed inset-0 z-40"
                     onClick={() => setNotificationsOpen(false)}
                   />
-                  <div className="absolute right-0 top-full mt-2 w-80 sm:w-88 rounded-2xl bg-[#08051e] border border-white/10 shadow-2xl p-4 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="absolute right-0 top-full mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-sm rounded-2xl bg-[#08051e] border border-white/10 shadow-2xl p-4 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="flex items-center justify-between pb-3 border-b border-white/5">
                       <span className="text-xs font-bold text-white uppercase tracking-wider">
                         System Status
@@ -401,7 +401,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                           <span className="text-violet-400 text-[10px]">Normal</span>
                         </div>
                         <p className="text-[10px] text-zinc-500 leading-normal">
-                          For high traffic or private repos, ensure your GitHub PAT is saved in Settings.
+                          Public metrics are enabled by default. A Personal Access Token (PAT) is optional for private repo metrics.
                         </p>
                       </div>
                     </div>

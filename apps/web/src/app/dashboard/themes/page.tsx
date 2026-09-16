@@ -451,28 +451,30 @@ export default function ThemeGalleryPage() {
           className="flex flex-col sm:flex-row gap-4 items-end w-full lg:w-auto"
         >
           <div className="flex flex-col gap-1.5 w-full sm:w-44">
-            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5 font-medium">
+            <label htmlFor="theme-username-input" className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5 font-medium">
               <Terminal className="w-3.5 h-3.5 text-violet-400" /> Username
             </label>
             <input
+              id="theme-username-input"
               type="text"
               placeholder="Username"
               value={usernameInput}
               onChange={(e) => setUsernameInput(e.target.value)}
-              className="bg-black/50 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-violet-500/80 transition-all font-mono"
+              className="bg-black/50 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-violet-500/80 focus-visible:ring-2 focus-visible:ring-violet-500 transition-all font-mono"
             />
           </div>
 
           <div className="flex flex-col gap-1.5 w-full sm:w-56">
-            <label className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5 font-medium">
+            <label htmlFor="theme-repo-input" className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5 font-medium">
               <Code2 className="w-3.5 h-3.5 text-violet-400" /> Repository
             </label>
             <input
+              id="theme-repo-input"
               type="text"
               placeholder="Repo Name"
               value={repoNameInput}
               onChange={(e) => setRepoNameInput(e.target.value)}
-              className="bg-black/50 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-violet-500/80 transition-all font-mono"
+              className="bg-black/50 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-violet-500/80 focus-visible:ring-2 focus-visible:ring-violet-500 transition-all font-mono"
             />
           </div>
 

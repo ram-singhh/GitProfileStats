@@ -179,9 +179,9 @@ export default function Home() {
       <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_60%_at_50%_10%,#000_60%,transparent_100%)] pointer-events-none" />
 
       {/* Header */}
-      <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-[#030014]/70 backdrop-blur-lg">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 group" id="nav-logo">
+      <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-[#030014]/80 backdrop-blur-lg">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <Link href="/" className="flex items-center gap-2.5 group" id="nav-logo" aria-label="GitProfileStats Home">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-violet-600 via-indigo-600 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-violet-500/20 group-hover:scale-105 transition-all duration-300">
               <Terminal className="w-4 h-4 text-white" />
             </div>
@@ -191,7 +191,7 @@ export default function Home() {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-400">
+          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-400" aria-label="Main Navigation">
             <a href="#features" className="hover:text-white transition-colors duration-200">
               Features
             </a>
@@ -233,9 +233,11 @@ export default function Home() {
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden p-2 rounded-lg border border-white/5 bg-white/[0.02] text-zinc-400 hover:text-white"
+            className="md:hidden p-2 rounded-lg border border-white/5 bg-white/[0.02] text-zinc-400 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label="Toggle Menu"
+            aria-label={mobileMenuOpen ? 'Close Menu' : 'Open Menu'}
+            aria-expanded={mobileMenuOpen}
+            aria-controls="mobile-nav-menu"
             id="mobile-menu-toggle"
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -244,25 +246,25 @@ export default function Home() {
 
         {/* Mobile Navigation Dropdown */}
         {mobileMenuOpen && (
-          <div className="md:hidden absolute top-16 left-0 w-full border-b border-white/5 bg-[#030014]/95 backdrop-blur-xl px-6 py-6 flex flex-col gap-5 shadow-2xl">
+          <div id="mobile-nav-menu" className="md:hidden absolute top-16 left-0 w-full border-b border-white/5 bg-[#030014]/95 backdrop-blur-xl px-6 py-6 flex flex-col gap-5 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200">
             <a
               href="#features"
               onClick={() => setMobileMenuOpen(false)}
-              className="text-lg font-medium text-zinc-300 hover:text-white transition-colors"
+              className="text-base font-medium text-zinc-300 hover:text-white transition-colors"
             >
               Features
             </a>
             <a
               href="#example-cards"
               onClick={() => setMobileMenuOpen(false)}
-              className="text-lg font-medium text-zinc-300 hover:text-white transition-colors"
+              className="text-base font-medium text-zinc-300 hover:text-white transition-colors"
             >
               Example Cards
             </a>
             <a
               href="#how-it-works"
               onClick={() => setMobileMenuOpen(false)}
-              className="text-lg font-medium text-zinc-300 hover:text-white transition-colors"
+              className="text-base font-medium text-zinc-300 hover:text-white transition-colors"
             >
               How It Works
             </a>
@@ -270,7 +272,7 @@ export default function Home() {
               href="https://github.com"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-lg font-medium text-zinc-300 hover:text-white flex items-center gap-2"
+              className="text-base font-medium text-zinc-300 hover:text-white flex items-center gap-2"
             >
               GitHub <Github className="w-5 h-5" />
             </a>
@@ -1061,6 +1063,9 @@ export default function Home() {
 
                   {/* Interactive username input */}
                   <div className="relative">
+                    <label htmlFor="input-preview-username" className="sr-only">
+                      GitHub Username Preview Handle
+                    </label>
                     <input
                       type="text"
                       value={previewUsername}

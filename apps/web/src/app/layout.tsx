@@ -13,12 +13,34 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'GitProfileStats | Beautiful GitHub Analytics & Profile Cards',
+  title: {
+    default: 'GitProfileStats | Beautiful GitHub Analytics & Profile Cards',
+    template: '%s | GitProfileStats',
+  },
   description:
-    'Showcase your GitHub journey in style. Generate stunning, real-time SVG cards and interactive dashboards for your GitHub profile README.',
+    'Showcase your GitHub journey in style. Generate stunning, real-time SVG cards, dynamic contribution stats, and interactive analytics for your GitHub profile README.',
+  keywords: [
+    'GitHub Profile Stats',
+    'GitHub Readme Cards',
+    'GitHub Analytics',
+    'Dynamic SVG Cards',
+    'GitHub Streaks',
+    'Developer Portfolio',
+  ],
+  authors: [{ name: 'GitProfileStats Team' }],
+  creator: 'GitProfileStats',
+  publisher: 'GitProfileStats',
   metadataBase: new URL('https://gitprofilestats.com'),
   alternates: {
     canonical: '/',
+  },
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
   },
   openGraph: {
     title: 'GitProfileStats | Beautiful GitHub Analytics & Profile Cards',

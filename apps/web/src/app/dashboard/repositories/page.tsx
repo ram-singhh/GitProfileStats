@@ -137,8 +137,7 @@ export default function RepositoriesPage() {
           <div className="max-w-md">
             <h3 className="font-extrabold text-lg text-white">No Statistics Loaded</h3>
             <p className="text-zinc-400 text-xs mt-1.5 leading-relaxed">
-              Your developer statistics details are currently empty. Please configure a personal
-              access token in Settings or Overview to load statistics.
+              Your developer statistics details are currently empty. Click &quot;Refresh Stats Data&quot; or check your connection. You can also optionally configure a personal access token in Settings to include private repository metrics.
             </p>
           </div>
         </div>
@@ -260,8 +259,7 @@ export default function RepositoriesPage() {
                     <div>
                       <h4 className="font-bold text-xs text-white">No Repositories Found</h4>
                       <p className="text-[10px] text-zinc-500 leading-relaxed max-w-[240px] mx-auto mt-1">
-                        No public repositories were detected for this profile. Access token scopes
-                        may restrict private repository stats.
+                        No public repositories were detected for this profile. You can optionally configure a personal access token in Settings to include private repository metrics.
                       </p>
                     </div>
                   </div>

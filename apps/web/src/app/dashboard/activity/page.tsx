@@ -181,8 +181,7 @@ export default function ActivityPage() {
           <div className="max-w-md">
             <h3 className="font-extrabold text-lg text-white">No Statistics Loaded</h3>
             <p className="text-zinc-400 text-xs mt-1.5 leading-relaxed">
-              Your developer statistics details are currently empty. Please configure a personal
-              access token in Settings or Overview to load statistics.
+              Your developer activity details are currently empty. Click &quot;Refresh Stats Data&quot; or check your connection to load activity.
             </p>
           </div>
         </div>

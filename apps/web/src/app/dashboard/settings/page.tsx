@@ -594,17 +594,20 @@ export default function SettingsPage() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+            <label htmlFor="pat-input" className="sr-only">GitHub Personal Access Token</label>
             <input
+              id="pat-input"
               type="password"
               placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+              aria-label="GitHub Personal Access Token"
               value={patToken}
               onChange={(e) => setPatToken(e.target.value)}
-              className="bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-violet-500 font-mono flex-1"
+              className="bg-black/50 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-violet-500 focus-visible:ring-2 focus-visible:ring-violet-500 font-mono flex-1"
             />
             <button
               onClick={handleSavePat}
               disabled={savingPat || !patToken.trim()}
-              className="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-xs font-extrabold text-white rounded-xl transition-all cursor-pointer disabled:opacity-50"
+              className="px-5 py-2.5 bg-violet-600 hover:bg-violet-500 text-xs font-extrabold text-white rounded-xl transition-all cursor-pointer disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
             >
               {savingPat ? 'Saving...' : 'Save Token'}
             </button>
@@ -612,7 +615,7 @@ export default function SettingsPage() {
               <button
                 onClick={handleClearPat}
                 disabled={savingPat}
-                className="px-4 py-2.5 border border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10 text-xs font-bold text-rose-400 rounded-xl transition-all cursor-pointer disabled:opacity-50"
+                className="px-4 py-2.5 border border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10 text-xs font-bold text-rose-400 rounded-xl transition-all cursor-pointer disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
               >
                 Clear Token
               </button>

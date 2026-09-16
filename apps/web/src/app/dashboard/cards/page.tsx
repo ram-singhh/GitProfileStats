@@ -1045,7 +1045,7 @@ export default function CardPreviewPage() {
           </div>
 
           {/* The Card Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             {(Object.keys(CARD_INFOS) as CardType[]).map((type) => {
               const card = cards[type];
               const info = CARD_INFOS[type];
@@ -1053,7 +1053,7 @@ export default function CardPreviewPage() {
               return (
                 <div
                   key={type}
-                  className="glass-card rounded-3xl p-6 flex flex-col gap-4 relative group"
+                  className="glass-card rounded-3xl p-4 sm:p-6 flex flex-col gap-4 relative group border border-white/5"
                 >
                   {/* Individual Card Container Header */}
                   <div className="flex items-center justify-between border-b border-white/5 pb-4">
@@ -1061,7 +1061,7 @@ export default function CardPreviewPage() {
                       <h3 className="font-extrabold text-base text-white tracking-tight flex items-center gap-1.5">
                         {info.title}
                       </h3>
-                      <p className="text-zinc-500 text-xs truncate max-w-[200px] sm:max-w-[300px]">
+                      <p className="text-zinc-500 text-xs truncate max-w-[180px] sm:max-w-[280px]">
                         {info.desc}
                       </p>
                     </div>
@@ -1071,8 +1071,9 @@ export default function CardPreviewPage() {
                       {/* Zoom actions */}
                       <button
                         onClick={() => setCardZoom(type, card.zoom - 0.1)}
-                        className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer"
+                        className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-violet-500"
                         title="Zoom Out"
+                        aria-label={`Zoom out ${info.title}`}
                       >
                         <ZoomOut className="w-3.5 h-3.5" />
                       </button>
@@ -1081,8 +1082,9 @@ export default function CardPreviewPage() {
                       </span>
                       <button
                         onClick={() => setCardZoom(type, card.zoom + 0.1)}
-                        className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer"
+                        className="p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-violet-500"
                         title="Zoom In"
+                        aria-label={`Zoom in ${info.title}`}
                       >
                         <ZoomIn className="w-3.5 h-3.5" />
                       </button>
@@ -1091,6 +1093,7 @@ export default function CardPreviewPage() {
                         disabled={card.zoom === 1.0}
                         className="p-1 text-[9px] font-bold text-zinc-500 hover:text-violet-400 rounded transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none"
                         title="Reset Zoom"
+                        aria-label={`Reset zoom ${info.title}`}
                       >
                         Reset
                       </button>
@@ -1138,7 +1141,7 @@ export default function CardPreviewPage() {
                     id={`tabpanel-${type}-${card.tab}`}
                     role="tabpanel"
                     aria-labelledby={`tab-${type}-${card.tab}`}
-                    className="relative rounded-2xl bg-black/40 border border-white/5 overflow-hidden flex items-center justify-center p-6 min-h-[260px] max-h-[360px]"
+                    className="relative rounded-2xl bg-black/40 border border-white/5 overflow-hidden flex items-center justify-center p-4 sm:p-6 min-h-[220px] sm:min-h-[260px] max-h-[360px]"
                   >
                     {/* 1. PREVIEW TAB */}
                     {card.tab === 'preview' && (

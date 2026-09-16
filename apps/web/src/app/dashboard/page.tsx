@@ -294,12 +294,12 @@ export default function DashboardPage() {
       {/* 1. TOP PROFILE & HERO BANNER */}
       <section className="glass-card rounded-3xl overflow-hidden relative border border-white/10 shadow-xl">
         {/* Decorative Top Accent Bar */}
-        <div className="h-24 sm:h-28 bg-gradient-to-r from-violet-600 via-indigo-600 to-fuchsia-600 relative overflow-hidden">
+        <div className="h-20 sm:h-28 bg-gradient-to-r from-violet-600 via-indigo-600 to-fuchsia-600 relative overflow-hidden">
           <div className="absolute inset-0 bg-black/20" />
-          <div className="absolute top-4 right-4 flex items-center gap-2">
+          <div className="absolute top-3 right-3 sm:top-4 sm:right-4 flex items-center gap-2">
             <button
               onClick={() => setShowPatModal(true)}
-              className={`px-3 py-1.5 rounded-full border text-[11px] font-semibold backdrop-blur-md flex items-center gap-1.5 transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-full border text-[11px] font-semibold backdrop-blur-md flex items-center gap-1.5 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white ${
                 hasGithubToken
                   ? 'border-emerald-500/30 bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
                   : 'border-white/10 bg-black/40 text-zinc-400 hover:text-zinc-200 hover:bg-black/60'
@@ -312,10 +312,10 @@ export default function DashboardPage() {
         </div>
 
         {/* Profile Content Details */}
-        <div className="px-6 sm:px-8 pb-8 pt-0 relative flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5 -mt-12 text-center sm:text-left">
+        <div className="px-4 sm:px-6 md:px-8 pb-6 sm:pb-8 pt-0 relative flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-5 -mt-10 sm:-mt-12 text-center sm:text-left">
             {/* Avatar */}
-            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl p-1 bg-gradient-to-tr from-violet-600 to-fuchsia-600 shadow-2xl shrink-0 overflow-hidden">
+            <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-3xl p-1 bg-gradient-to-tr from-violet-600 to-fuchsia-600 shadow-2xl shrink-0 overflow-hidden">
               {user?.avatarUrl ? (
                 <Image
                   src={user.avatarUrl}
@@ -325,16 +325,16 @@ export default function DashboardPage() {
                   className="w-full h-full rounded-[22px] object-cover bg-zinc-950"
                 />
               ) : (
-                <div className="w-full h-full rounded-[22px] bg-zinc-950 flex items-center justify-center font-black text-3xl text-white">
+                <div className="w-full h-full rounded-[22px] bg-zinc-950 flex items-center justify-center font-black text-2xl sm:text-3xl text-white">
                   {user?.username?.substring(0, 2).toUpperCase() || 'US'}
                 </div>
               )}
             </div>
 
             {/* Profile Info */}
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1 min-w-0">
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                <h1 className="font-extrabold text-2xl sm:text-3xl text-white tracking-tight">
+                <h1 className="font-extrabold text-xl sm:text-3xl text-white tracking-tight break-all">
                   {user?.username}
                 </h1>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-violet-500/10 border border-violet-500/20 text-violet-400">
@@ -346,7 +346,7 @@ export default function DashboardPage() {
               </p>
 
               {/* Meta tags */}
-              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 mt-2 text-xs text-zinc-400">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 sm:gap-4 mt-2 text-xs text-zinc-400">
                 {location && (
                   <span className="flex items-center gap-1">
                     <MapPin className="w-3.5 h-3.5 text-zinc-500" />
@@ -381,11 +381,11 @@ export default function DashboardPage() {
           </div>
 
           {/* Quick Actions Buttons */}
-          <div className="flex flex-wrap items-center justify-center sm:justify-start md:justify-end gap-3 shrink-0">
+          <div className="flex flex-wrap items-center justify-center sm:justify-start md:justify-end gap-2.5 sm:gap-3 shrink-0">
             <button
               onClick={handleSync}
               disabled={syncing || loadingStats || !isOnline}
-              className="px-4 py-2.5 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 text-white font-bold text-xs flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50 active:scale-95"
+              className="px-4 py-2.5 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 text-white font-bold text-xs flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
             >
               <RefreshCw
                 className={`w-3.5 h-3.5 ${syncing || loadingStats ? 'animate-spin text-violet-400' : 'text-zinc-400'}`}
@@ -395,7 +395,7 @@ export default function DashboardPage() {
 
             <Link
               href="/dashboard/cards"
-              className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-extrabold text-xs flex items-center gap-2 shadow-lg shadow-violet-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="px-5 py-2.5 rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-extrabold text-xs flex items-center gap-2 shadow-lg shadow-violet-500/20 transition-all hover:scale-[1.02] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500"
             >
               <CreditCard className="w-4 h-4" />
               <span>Customize Cards</span>
